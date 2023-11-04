@@ -37,3 +37,13 @@ function makeBuffer(gl, data, bufferType) {
     gl.bufferData(bufferType, data, gl.STATIC_DRAW);
     return buffer;
 }
+
+// Get attribute locations from shader program
+function getAttribLocations(gl, shaderProgram, attribs) {
+    let locations = {};
+    // Return an object with attrib as key and location as values
+    for (i=0; i<attribs.length; i++) {
+        locations[attribs[i]] = gl.getAttribLocation(shaderProgram, attribs[i]);
+    }
+    return locations;
+}
