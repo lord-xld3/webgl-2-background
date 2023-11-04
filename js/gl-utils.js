@@ -22,12 +22,18 @@ function makeProgram(gl, vertexShaderSource, fragmentShaderSource) {
     gl.attachShader(shaderProgram, fragmentShader);
     gl.linkProgram(shaderProgram);
 
+    if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+        const info = gl.getProgramInfoLog(shaderProgram);
+        throw new Error(`Could not link shader program. \n\n${info}`);
+    }
+
     return shaderProgram;
 }
 
-// Create a buffer object and load data into it
+// Load data into a buffer and return the buffer
 function makeBuffer(gl, data, bufferType) {
     const buffer = gl.createBuffer();
     gl.bindBuffer(bufferType, buffer);
     gl.bufferData(bufferType, data, gl.STATIC_DRAW);
+    return buffer;
 }
