@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', function() {
         throw new Error('WebGL2 not supported');
     }
 
+    // Initialize glUtils with gl context
+    glUtils.init(gl);
+
     const vertexShaderSource = `#version 300 es
     in vec4 position;
     in vec4 color;
@@ -27,6 +30,9 @@ document.addEventListener('DOMContentLoaded', function() {
         outColor = v_color;
     }`;
 
+    // Create a shader program from vertex and fragment shader sources
+    const shaderProgram = glUtils.makeProgram(vertexShaderSource, fragmentShaderSource);
+
     // Data for vertex positions and colors
     let vertexPositions = new Float32Array([
         0, 0.7,
@@ -39,16 +45,17 @@ document.addEventListener('DOMContentLoaded', function() {
         0, 255, 0, 255,
         0, 0, 255, 255,
     ]);
-
+    
     // Create buffers from data
-    const positionBuffer = makeBuffer(gl, vertexPositions, gl.ARRAY_BUFFER);
-    const colorBuffer = makeBuffer(gl, vertexColors, gl.ARRAY_BUFFER);
+    const positionBuffer = glUtils.makeBuffer(vertexPositions, gl.ARRAY_BUFFER);
+    const colorBuffer = glUtils.makeBuffer(vertexColors, gl.ARRAY_BUFFER);
 
-    // Create a shader program from vertex and fragment shader sources
-    const shaderProgram = makeProgram(gl, vertexShaderSource, fragmentShaderSource);
+    // Release data after copying into buffers
+    vertexPositions = null;
+    vertexColors = null;
 
     // Get attribute locations
-    const attribs = getAttribLocations(gl, shaderProgram, ['position', 'color']);
+    const attribs = glUtils.getAttribLocations(shaderProgram, ['position', 'color']);
 
     // Create a vertex array object (attribute state)
     const triangleVAO = gl.createVertexArray();
@@ -62,14 +69,6 @@ document.addEventListener('DOMContentLoaded', function() {
     gl.enableVertexAttribArray(attribs.color);
     gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
     gl.vertexAttribPointer(attribs.color, 4, gl.UNSIGNED_BYTE, true, 0, 0);
-
-    
-
-    // Release data after copying into buffers
-    vertexPositions = null;
-    vertexColors = null;
-
-    
 
     // On resize, update the canvas size and viewport
     window.addEventListener('resize', function() {
