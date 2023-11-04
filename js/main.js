@@ -54,6 +54,14 @@ document.addEventListener('DOMContentLoaded', function() {
     vertexPositions = null;
     vertexColors = null;
 
+    // On resize, update the canvas size and viewport
+    window.addEventListener('resize', function() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+    });
+    
+
     // Get attribute locations
     const attribs = glUtils.getAttribLocations(shaderProgram, ['position', 'color']);
 
@@ -70,16 +78,52 @@ document.addEventListener('DOMContentLoaded', function() {
     gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
     gl.vertexAttribPointer(attribs.color, 4, gl.UNSIGNED_BYTE, true, 0, 0);
 
-    // On resize, update the canvas size and viewport
-    window.addEventListener('resize', function() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        gl.viewport(0, 0, canvas.width, canvas.height);
-    });
+    // Create a list of objects to use with gl.drawArrays
+    const objectArrays = [
+        {
+            program: shaderProgram,
+            objects: [
+                {
+                    vao: triangleVAO,
+                    drawMode: gl.TRIANGLES,
+                    count: 3,
+                }
+            ],
+        },
+    ];
+
+    // Render using gl.drawArrays
+    function renderArrays() {
+        for (let i = 0; i < objectArrays.length; i++) {
+            const objectArray = objectArrays[i];
+            const program = objectArray.program;
+            gl.useProgram(program);
+            for (let j = 0; j < objectArray.objects.length; j++) {
+                const object = objectArray.objects[j];
+                gl.bindVertexArray(object.vao);
+                gl.drawArrays(object.drawMode, 0, object.count);
+            }
+        }
+    }
+
+    const taskQueue = [renderArrays];
+
+    function render() {
+        // Clear the canvas
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        // Process task queue
+        while (taskQueue.length > 0) {
+            taskQueue.pop()();
+        }
+
+        // Repopulate task queue
+        taskQueue.push(renderArrays);
+
+        // Request next frame
+        requestAnimationFrame(render);
+    }
     window.dispatchEvent(new Event('resize')); // Set initial size
-
-    gl.useProgram(shaderProgram);
-
-    // compute 3 vertices for 1 triangle
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    render();
 });
