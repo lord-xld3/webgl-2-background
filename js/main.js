@@ -14,14 +14,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const vertexShaderSource = `#version 300 es
         in vec4 position;
         out vec3 orientation;
-        uniform mat4 modelViewProjectionMatrix;
+        uniform mat4 modelViewProjection;
 
         void main() {
-            gl_Position = modelViewProjectionMatrix * position;
+            gl_Position = modelViewProjection * position;
 
             // Calculate the orientation of the cube
-            mat4 rotationMatrix = modelViewProjectionMatrix;
-            orientation = mat3(rotationMatrix) * position.xyz;
+            mat4 rotation = modelViewProjection;
+            orientation = mat3(rotation) * position.xyz;
         }
     `;
 
@@ -66,8 +66,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const cubeIndexBuffer = glUtils.makeBuffer(cubeIndices, gl.ELEMENT_ARRAY_BUFFER);
 
     // Get attribute and uniform locations
-    const attribs = glUtils.getAttribLocations(shaderProgram, ['position', 'color']);
-    const modelViewProjectionMatrixLocation = gl.getUniformLocation(shaderProgram, 'modelViewProjectionMatrix');
+    const attribs = glUtils.getAttribLocations(shaderProgram, [
+        'position',
+    ]);
+    const uniforms = glUtils.getUniformLocations(shaderProgram, [
+        'modelViewProjection',
+    ]);
 
     // Create a vertex array object (attribute state)
     const cubeVAO = gl.createVertexArray();
@@ -83,13 +87,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Model
     const modelMatrix = mat4.create();
-    mat4.translate(modelMatrix, modelMatrix, [1, -1, 1]); // Move the cube back in the z-direction
+    mat4.translate(modelMatrix, modelMatrix, [-0.5, 0, 0.5]); // Offset the cube slightly
 
     // View
     const viewMatrix = mat4.create();
     mat4.lookAt(
         viewMatrix,
-        [0,0,4], // Camera position
+        [0,0,2], // Camera position
         [0,0,0], // Target position
         [0,1,0] // Up vector
     );
@@ -114,8 +118,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Rotate the camera (view matrix)
         mat4.rotate(viewMatrix, viewMatrix,
-            0.005, // Rotation angle
-            [1, 1, 1] // Rotation axis
+            0.003, // Rotation angle
+            [1, -1, 1] // Rotation axis
         );
 
         // Rotate the cube too!
@@ -129,26 +133,25 @@ document.addEventListener('DOMContentLoaded', function() {
         mat4.multiply(modelViewProjectionMatrix, modelViewProjectionMatrix, modelMatrix); // Multiply the model matrix
 
         // Update the uniform in the shader program
-        gl.useProgram(shaderProgram);
-        gl.uniformMatrix4fv(modelViewProjectionMatrixLocation, false, modelViewProjectionMatrix);
+        gl.uniformMatrix4fv(uniforms.modelViewProjection, false, modelViewProjectionMatrix);
 
-        // Clear the canvas
+        // Clear the canvas and draw
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // Clear the depth buffer as well
-
-        // Bind the cube buffers and draw
-        gl.bindVertexArray(cubeVAO);
         gl.drawElements(gl.TRIANGLES, cubeIndices.length, gl.UNSIGNED_SHORT, 0);
 
         // Request the next frame
         requestAnimationFrame(render);
     }
 
-    // Set up the depth buffer and enable depth testing
+    // Prepare WebGL for rendering
     gl.enable(gl.DEPTH_TEST);
-    gl.clearDepth(1.0);
 
+    // This can go in the render loop if there are multiple shader programs
+    // You may also need to bind the vertex array object for each object
+    gl.useProgram(shaderProgram); 
+    
     // Start the rendering loop
-    window.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event('resize')); // Set the initial canvas size
     render();
 });

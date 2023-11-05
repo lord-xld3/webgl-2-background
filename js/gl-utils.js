@@ -54,10 +54,21 @@ const glUtils = (function() {
         return locations;
     }
 
+    // Get uniform locations
+    function getUniformLocations(shaderProgram, uniforms) {
+        let locations = {};
+        // Return an object with uniforms as keys and locations as values
+        for (let i = 0; i < uniforms.length; i++) {
+            locations[uniforms[i]] = gl.getUniformLocation(shaderProgram, uniforms[i]);
+        }
+        return locations;
+    }
+
     return {
         init,
         makeProgram,
         makeBuffer,
         getAttribLocations,
+        getUniformLocations,
     };
 })();
