@@ -185,6 +185,10 @@ document.addEventListener('DOMContentLoaded', function() {
 		);
     });
 
+	let tick = 0;
+	let tickRate = 0.01;
+	let maxTick = 2 * Math.PI; // 360 degrees
+
     // Main rendering loop
     function render() {
 
@@ -200,11 +204,16 @@ document.addEventListener('DOMContentLoaded', function() {
 		// Upload the projection matrix in case it changed
 		gl.uniformMatrix4fv(uniforms.projection, false, projectionMatrix);
 
+		tick = (tick + tickRate) % maxTick;
+
 		// Update the matrices
 		matrices.forEach((matrix, i) => {
 			mat4.identity(matrix);
 			mat4.translate(matrix, matrix, [0, 0, -2 * i + 3])
-			mat4.rotate(matrix, matrix, 0.3 * i + 0.2, [-1, 1, 1]);
+			mat4.rotate(matrix, matrix, 
+				Math.sin(tick) * Math.PI * 2 + i, // Angle
+				[-0.8, 0.5, 0.4] // Axis
+			);
 		});
 
 		// Upload the new matrix data
