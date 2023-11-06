@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	// View
 	const viewMatrix = mat4.lookAt(mat4.create(), 
-		[0, 1, 8], // Eye position
+		[0, 1, 6], // Eye position
 		[0, 0, 0], // Target position
 		[0, 1, 0] // Up vector
 	);
