@@ -70,7 +70,6 @@ document.addEventListener('DOMContentLoaded', function() {
 		gl.ARRAY_BUFFER, 
 		gl.STATIC_DRAW
 	);
-	const numVertices = 8;
 
 	// Specify the position attribute for the vertices
     gl.bindBuffer(gl.ARRAY_BUFFER, cubePositionBuffer);
@@ -158,41 +157,61 @@ document.addEventListener('DOMContentLoaded', function() {
 	);
 	gl.vertexAttribDivisor(attribs.color, 1); // This attribute only changes for each 1 instance
 
+	// View
+	const viewMatrix = mat4.lookAt(mat4.create(), 
+		[0, 1, 8], // Eye position
+		[0, 0, 0], // Target position
+		[0, 1, 0] // Up vector
+	);
+
+	// Projection
+	const projectionMatrix = mat4.perspective(mat4.create(), 
+		45, // Field of view
+		canvas.width / canvas.height, // Aspect ratio
+		0.1, // Near
+		100 // Far
+	);
+
     // Resize the canvas when the window is resized
     window.addEventListener('resize', function() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         gl.viewport(0, 0, canvas.width, canvas.height);
+		mat4.perspective(mat4.create(), 
+			45, // Field of view
+			canvas.width / canvas.height, // Aspect ratio
+			0.1, // Near
+			100 // Far
+		);
     });
 
     // Main rendering loop
-    function render(time) {
-		time *= 0.0001; // Convert time to seconds
+    function render() {
 
 		// Clear the canvas
-		gl.clearColor(0, 0, 0, 1);
+		gl.clearColor(0, 0, 0, 0);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    	gl.uniformMatrix4fv(uniforms.projection, false,
-        	mat4.perspective(mat4.create(), 45, canvas.width / canvas.height, 0.1, 100)
+		// Rotate the camera
+    	gl.uniformMatrix4fv(uniforms.view, false,
+			mat4.rotate(viewMatrix, viewMatrix, 0.005, [0, 1, 0])
 		);
-    	gl.uniformMatrix4fv(uniforms.view, false, 
-			mat4.lookAt(mat4.create(), [1, 0.5, 2], [0, 0, 0], [0, 1, 0])
-		);
-
-		gl.bindVertexArray(cubeVAO);
+		
+		// Upload the projection matrix in case it changed
+		gl.uniformMatrix4fv(uniforms.projection, false, projectionMatrix);
 
 		// Update the matrices
 		matrices.forEach((matrix, i) => {
 			mat4.identity(matrix);
-			mat4.translate(matrix, matrix, [0.1 * i, -0.1 * i, -0.1 * i]);
-			mat4.rotate(matrix, matrix, time * (i + 0.001), [-0.5, 0.5, 1]);
+			mat4.translate(matrix, matrix, [0, 0, -2 * i + 3])
+			mat4.rotate(matrix, matrix, 0.3 * i + 0.2, [-1, 1, 1]);
 		});
 
 		// Upload the new matrix data
 		gl.bindBuffer(gl.ARRAY_BUFFER, matrixBuffer);
 		gl.bufferSubData(gl.ARRAY_BUFFER, 0, matrixData);
 
+		// Draw the cube instances
 		gl.drawElementsInstanced(
 			gl.TRIANGLES, 
 			numIndices, 
@@ -210,9 +229,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // This can go in the render loop if there are multiple shader programs
     // You may also need to bind the vertex array object for each object
-    gl.useProgram(shaderProgram); 
-    
+    gl.useProgram(shaderProgram);
+
     // Start the rendering loop
     window.dispatchEvent(new Event('resize')); // Set the initial canvas size
-    requestAnimationFrame(render);
+    render();
 });
