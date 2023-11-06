@@ -37,10 +37,10 @@ const glUtils = (function() {
     }
 
     // Create a buffer from data
-    function makeBuffer(data, bufferType) {
+    function makeBuffer(data, bufferType, drawType) {
         const buffer = gl.createBuffer();
         gl.bindBuffer(bufferType, buffer);
-        gl.bufferData(bufferType, data, gl.STATIC_DRAW);
+        gl.bufferData(bufferType, data, drawType);
         return buffer;
     }
 

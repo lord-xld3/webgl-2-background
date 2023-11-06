@@ -38,6 +38,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Create a shader program from vertex and fragment shader sources
     const shaderProgram = glUtils.makeProgram(vertexShaderSource, fragmentShaderSource);
 
+	// Get attribute and uniform locations
+    const attribs = glUtils.getAttribLocations(shaderProgram, [
+        'position',
+    ]);
+    const uniforms = glUtils.getUniformLocations(shaderProgram, [
+        'modelViewProjection',
+    ]);
+
     // Define cube vertices and colors
     const cubeVertices = new Float32Array([
         // Vertex positions
@@ -62,16 +70,8 @@ document.addEventListener('DOMContentLoaded', function() {
     ]);
 
     // Create buffers for vertices and indices
-    const cubePositionBuffer = glUtils.makeBuffer(cubeVertices, gl.ARRAY_BUFFER);
-    const cubeIndexBuffer = glUtils.makeBuffer(cubeIndices, gl.ELEMENT_ARRAY_BUFFER);
-
-    // Get attribute and uniform locations
-    const attribs = glUtils.getAttribLocations(shaderProgram, [
-        'position',
-    ]);
-    const uniforms = glUtils.getUniformLocations(shaderProgram, [
-        'modelViewProjection',
-    ]);
+    const cubePositionBuffer = glUtils.makeBuffer(cubeVertices, gl.ARRAY_BUFFER, gl.STATIC_DRAW);
+    const cubeIndexBuffer = glUtils.makeBuffer(cubeIndices, gl.ELEMENT_ARRAY_BUFFER, gl.STATIC_DRAW);
 
     // Create a vertex array object (attribute state)
     const cubeVAO = gl.createVertexArray();
