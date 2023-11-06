@@ -13,26 +13,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const vertexShaderSource = `#version 300 es
         in vec4 position;
-        out vec3 orientation;
-        uniform mat4 modelViewProjection;
+		in vec4 color;
+		in mat4 model;
+		uniform mat4 view;
+        uniform mat4 projection;
+		
+		out vec4 v_color;
 
         void main() {
-            gl_Position = modelViewProjection * position;
-
-            // Calculate the orientation of the cube
-            mat4 rotation = modelViewProjection;
-            orientation = mat3(rotation) * position.xyz;
+            gl_Position = projection * view * model * position;
+			v_color = color;
         }
     `;
 
     const fragmentShaderSource = `#version 300 es
         precision highp float;
-        in vec3 orientation;
-        out vec4 color;
+		in vec4 v_color;
+		
+		out vec4 outColor;
 
-        void main() {
-            color = vec4(abs(orientation), 1);
-        }
+		void main() {
+			outColor = v_color;
+		}
     `;
 
     // Create a shader program from vertex and fragment shader sources
@@ -41,104 +43,163 @@ document.addEventListener('DOMContentLoaded', function() {
 	// Get attribute and uniform locations
     const attribs = glUtils.getAttribLocations(shaderProgram, [
         'position',
+		'color',
+		'model',
     ]);
     const uniforms = glUtils.getUniformLocations(shaderProgram, [
-        'modelViewProjection',
+        'view',
+		'projection',
     ]);
 
-    // Define cube vertices and colors
-    const cubeVertices = new Float32Array([
-        // Vertex positions
-        -0.5, -0.5, -0.5,
-        0.5, -0.5, -0.5,
-        0.5, 0.5, -0.5,
-        -0.5, 0.5, -0.5,
-        -0.5, -0.5, 0.5,
-        0.5, -0.5, 0.5,
-        0.5, 0.5, 0.5,
-        -0.5, 0.5, 0.5,
-    ]);
-
-    // Define cube indices for drawing
-    const cubeIndices = new Uint16Array([
-        0, 1, 2, 0, 2, 3, // Front face
-        4, 5, 6, 4, 6, 7, // Back face
-        0, 4, 7, 0, 7, 3, // Left face
-        1, 5, 6, 1, 6, 2, // Right face
-        0, 1, 5, 0, 5, 4, // Bottom face
-        3, 2, 6, 3, 6, 7  // Top face
-    ]);
-
-    // Create buffers for vertices and indices
-    const cubePositionBuffer = glUtils.makeBuffer(cubeVertices, gl.ARRAY_BUFFER, gl.STATIC_DRAW);
-    const cubeIndexBuffer = glUtils.makeBuffer(cubeIndices, gl.ELEMENT_ARRAY_BUFFER, gl.STATIC_DRAW);
-
-    // Create a vertex array object (attribute state)
+	// Create a vertex array object (attribute state)
     const cubeVAO = gl.createVertexArray();
     gl.bindVertexArray(cubeVAO);
 
-    // Specify the position attribute for the vertices
+    // Define cube vertices
+	const cubePositionBuffer = glUtils.makeBuffer(
+		new Float32Array([
+			-0.5, -0.5, -0.5,
+			0.5, -0.5, -0.5,
+			0.5, 0.5, -0.5,
+			-0.5, 0.5, -0.5,
+			-0.5, -0.5, 0.5,
+			0.5, -0.5, 0.5,
+			0.5, 0.5, 0.5,
+			-0.5, 0.5, 0.5,
+		]), 
+		gl.ARRAY_BUFFER, 
+		gl.STATIC_DRAW
+	);
+	const numVertices = 8;
+
+	// Specify the position attribute for the vertices
     gl.bindBuffer(gl.ARRAY_BUFFER, cubePositionBuffer);
     gl.enableVertexAttribArray(attribs.position);
-    gl.vertexAttribPointer(attribs.position, 3, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(
+		attribs.position, // Attribute location
+		3, // Number of elements per attribute
+		gl.FLOAT, // Type of elements
+		false, // Normalized
+		0, // Stride, 0 = auto
+		0 // Offset, 0 = auto
+	);
 
-    // Bind the index buffer
+	// Define cube indices
+    const cubeIndexBuffer = glUtils.makeBuffer(
+		new Uint16Array([
+			0, 1, 2, 2, 3, 0, // Front face
+			1, 5, 6, 6, 2, 1, // Right face
+			5, 4, 7, 7, 6, 5, // Back face
+			4, 0, 3, 3, 7, 4, // Left face
+			3, 2, 6, 6, 7, 3, // Top face
+			4, 5, 1, 1, 0, 4, // Bottom face
+		]),
+		gl.ELEMENT_ARRAY_BUFFER,
+		gl.STATIC_DRAW
+	);
+	const numIndices = 36;
+    
+	// Bind the index buffer
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeIndexBuffer);
 
-    // Model
-    const modelMatrix = mat4.create();
-    mat4.translate(modelMatrix, modelMatrix, [-0.5, 0, 0.5]); // Offset the cube slightly
+	// Setup matrices, one per instance
+	const numInstances = 4;
+	const matrixData = new Float32Array(numInstances * 16);
+	const matrices = [];
+	for (let i = 0; i < numInstances; ++i) {
+		const byteOffsetToMatrix = i * 16 * 4; // 4 bytes per float
+		const numFloatsForView = 16;
+		matrices.push(new Float32Array(
+			matrixData.buffer, 
+			byteOffsetToMatrix, 
+			numFloatsForView
+		));
+	}
 
-    // View
-    const viewMatrix = mat4.create();
-    mat4.lookAt(
-        viewMatrix,
-        [0,0,2], // Camera position
-        [0,0,0], // Target position
-        [0,1,0] // Up vector
-    );
+	const matrixBuffer = glUtils.makeBuffer(matrixData, gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW);
 
-    // Projection
-    const projectionMatrix = mat4.create();
-    mat4.perspective(projectionMatrix, 45 * Math.PI / 180, canvas.width / canvas.height, 0.1, 100);
-    
-    // ModelViewProjection
-    const modelViewProjectionMatrix = mat4.create();
+	// Set attributes for each matrix
+	for (let i = 0; i < 4; i++) { // 4 attributes
+		const location = attribs.model + i;
+		gl.enableVertexAttribArray(location);
+		const offset = i * 16; // 4 floats per row, 4 bytes per float
+		gl.vertexAttribPointer(
+			location, // Attribute location
+			4, // Number of elements per attribute
+			gl.FLOAT, // Type of elements
+			false, // Normalized
+			16 * 4, // Stride, 16 floats per matrix, 4 bytes per float
+			offset // Offset
+		);
+		gl.vertexAttribDivisor(location, 1); // This attribute only changes for each 1 instance
+	}
+
+	// Setup a color for each instance
+	const colorBuffer = glUtils.makeBuffer(
+		new Float32Array([
+			1, 0, 0, 1, // Red
+			0, 1, 0, 1, // Green
+			0, 0, 1, 1, // Blue
+			1, 1, 0, 1, // Yellow
+		]),
+		gl.ARRAY_BUFFER,
+		gl.STATIC_DRAW
+	);
+
+	// Set attributes for each color
+	gl.enableVertexAttribArray(attribs.color);
+	gl.vertexAttribPointer(
+		attribs.color, // Attribute location
+		4, // Number of elements per attribute
+		gl.FLOAT, // Type of elements
+		false, // Normalized
+		0, // Stride, 0 = auto
+		0 // Offset, 0 = auto
+	);
+	gl.vertexAttribDivisor(attribs.color, 1); // This attribute only changes for each 1 instance
 
     // Resize the canvas when the window is resized
     window.addEventListener('resize', function() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         gl.viewport(0, 0, canvas.width, canvas.height);
-        mat4.perspective(projectionMatrix, 45 * Math.PI / 180, canvas.width / canvas.height, 0.1, 100);
     });
 
     // Main rendering loop
-    function render() {
+    function render(time) {
+		time *= 0.0001; // Convert time to seconds
 
-        // Rotate the camera (view matrix)
-        mat4.rotate(viewMatrix, viewMatrix,
-            0.003, // Rotation angle
-            [1, -1, 1] // Rotation axis
-        );
+		// Clear the canvas
+		gl.clearColor(0, 0, 0, 1);
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        // Rotate the cube too!
-        mat4.rotate(modelMatrix, modelMatrix,
-            0.01, // Rotation angle
-            [-0.2, -0.2, -0.2] // Rotation axis
-        );
+    	gl.uniformMatrix4fv(uniforms.projection, false,
+        	mat4.perspective(mat4.create(), 45, canvas.width / canvas.height, 0.1, 100)
+		);
+    	gl.uniformMatrix4fv(uniforms.view, false, 
+			mat4.lookAt(mat4.create(), [1, 0.5, 2], [0, 0, 0], [0, 1, 0])
+		);
 
-        // Update the model-view-projection matrix
-        mat4.multiply(modelViewProjectionMatrix, projectionMatrix, viewMatrix); // Multiply the projection and view matrices
-        mat4.multiply(modelViewProjectionMatrix, modelViewProjectionMatrix, modelMatrix); // Multiply the model matrix
+		gl.bindVertexArray(cubeVAO);
 
-        // Update the uniform in the shader program
-        gl.uniformMatrix4fv(uniforms.modelViewProjection, false, modelViewProjectionMatrix);
+		// Update the matrices
+		matrices.forEach((matrix, i) => {
+			mat4.identity(matrix);
+			mat4.translate(matrix, matrix, [0.1 * i, -0.1 * i, -0.1 * i]);
+			mat4.rotate(matrix, matrix, time * (i + 0.001), [-0.5, 0.5, 1]);
+		});
 
-        // Clear the canvas and draw
-        gl.clearColor(0, 0, 0, 0);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // Clear the depth buffer as well
-        gl.drawElements(gl.TRIANGLES, cubeIndices.length, gl.UNSIGNED_SHORT, 0);
+		// Upload the new matrix data
+		gl.bindBuffer(gl.ARRAY_BUFFER, matrixBuffer);
+		gl.bufferSubData(gl.ARRAY_BUFFER, 0, matrixData);
+
+		gl.drawElementsInstanced(
+			gl.TRIANGLES, 
+			numIndices, 
+			gl.UNSIGNED_SHORT, 
+			0, 
+			numInstances
+		);
 
         // Request the next frame
         requestAnimationFrame(render);
@@ -153,5 +214,5 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Start the rendering loop
     window.dispatchEvent(new Event('resize')); // Set the initial canvas size
-    render();
+    requestAnimationFrame(render);
 });
