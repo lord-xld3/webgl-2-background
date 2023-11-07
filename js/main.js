@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 
 	// Setup a color for each instance
-	const colorBuffer = glUtils.makeBuffer(
+	glUtils.makeBuffer(
 		new Float32Array([
 			1, 0, 0, 1, // Red
 			0, 1, 0, 1, // Green
@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	// View
 	const viewMatrix = mat4.lookAt(mat4.create(), 
-		[0, 1, 6], // Eye position
+		[0, 1, 4], // Eye position
 		[0, 0, 0], // Target position
 		[0, 1, 0] // Up vector
 	);
@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 		// Rotate the camera
     	gl.uniformMatrix4fv(uniforms.view, false,
-			mat4.rotate(viewMatrix, viewMatrix, 0.005, [0, 1, 0])
+			mat4.rotate(viewMatrix, viewMatrix, 0.01, [1, 0, 0])
 		);
 		
 		// Upload the projection matrix in case it changed
@@ -209,10 +209,10 @@ document.addEventListener('DOMContentLoaded', function() {
 		// Update the matrices
 		matrices.forEach((matrix, i) => {
 			mat4.identity(matrix);
-			mat4.translate(matrix, matrix, [0, 0, -2 * i + 3])
+			mat4.translate(matrix, matrix, [-3 + (2 * i), 0, 0 ])
 			mat4.rotate(matrix, matrix, 
-				Math.sin(tick) * Math.PI * 2 + i, // Angle
-				[-0.8, 0.5, 0.4] // Axis
+				Math.sin(tick) * Math.PI * (0.3 + i * 0.5), // Angle
+				[1, 0.5, -0.7] // Axis
 			);
 		});
 
