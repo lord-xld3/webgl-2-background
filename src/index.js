@@ -1,4 +1,7 @@
-// main.js
+// index.js
+
+import * as glUtils from './gl-utils.js';
+import { mat4 } from 'gl-matrix';
 
 // Entry point
 document.addEventListener('DOMContentLoaded', function() {
@@ -7,9 +10,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!gl) {
         throw new Error('WebGL2 not supported');
     }
-
-    // Initialize glUtils with gl context
-    glUtils.init(gl);
 
     const vertexShaderSource = `#version 300 es
         in vec4 position;
@@ -38,15 +38,15 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
 
     // Create a shader program from vertex and fragment shader sources
-    const shaderProgram = glUtils.makeProgram(vertexShaderSource, fragmentShaderSource);
+    const shaderProgram = glUtils.makeProgram(gl, vertexShaderSource, fragmentShaderSource);
 
 	// Get attribute and uniform locations
-    const attribs = glUtils.getAttribLocations(shaderProgram, [
+    const attribs = glUtils.getAttribLocations(gl, shaderProgram, [
         'position',
 		'color',
 		'model',
     ]);
-    const uniforms = glUtils.getUniformLocations(shaderProgram, [
+    const uniforms = glUtils.getUniformLocations(gl, shaderProgram, [
         'view',
 		'projection',
     ]);
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
     gl.bindVertexArray(cubeVAO);
 
     // Define cube vertices
-	const cubePositionBuffer = glUtils.makeBuffer(
+	const cubePositionBuffer = glUtils.makeBuffer(gl,
 		new Float32Array([
 			-0.5, -0.5, -0.5,
 			0.5, -0.5, -0.5,
@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	);
 
 	// Define cube indices
-    const cubeIndexBuffer = glUtils.makeBuffer(
+    const cubeIndexBuffer = glUtils.makeBuffer(gl,
 		new Uint16Array([
 			0, 1, 2, 2, 3, 0, // Front face
 			1, 5, 6, 6, 2, 1, // Right face
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		));
 	}
 
-	const matrixBuffer = glUtils.makeBuffer(matrixData, gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW);
+	const matrixBuffer = glUtils.makeBuffer(gl, matrixData, gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW);
 
 	// Set attributes for each matrix
 	for (let i = 0; i < 4; i++) { // 4 attributes
@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 
 	// Setup a color for each instance
-	glUtils.makeBuffer(
+	glUtils.makeBuffer(gl,
 		new Float32Array([
 			1, 0, 0, 1, // Red
 			0, 1, 0, 1, // Green
