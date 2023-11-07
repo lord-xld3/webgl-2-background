@@ -14,6 +14,7 @@ module.exports = {
             './src/img/mandelbrot.png',
             './src/img/boundary_tracing.png',
             './src/img/maf_cal.png',
+            './src/img/portfolio_icon.png',
         ],
     },
     output: {
