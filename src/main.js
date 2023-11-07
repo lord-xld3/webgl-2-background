@@ -1,4 +1,4 @@
-// index.js
+// main.js
 
 import * as glUtils from './gl-utils.js';
 import { mat4 } from 'gl-matrix';

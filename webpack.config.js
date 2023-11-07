@@ -6,7 +6,11 @@ const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 
 module.exports = {
     entry: {
-        main: ['./src/index.js', './src/style.css'],
+        main: [
+            './src/main.js', 
+            './src/style.css', 
+            './src/img/myself.jpg',
+        ],
     },
     output: {
         filename: 'main.js',
@@ -20,7 +24,12 @@ module.exports = {
             },
             {
                 test: /\.(png|svg|jpg|gif)$/,
-                use: ['file-loader'],
+                use: {
+                    loader: 'file-loader',
+                    options: {
+                        name: 'img/[name].[ext]', // Output path for images
+                    },
+                },
             },
         ],
     },
