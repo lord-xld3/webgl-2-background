@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="author" content="Kyle Simmons">
         <meta name="description" content="My portfolio">
-        <meta name="keywords" content="Kyle Simmons, HTML, CSS, JS, WebGL2, Webpack">
+        <meta name="keywords" content="Kyle Simmons, portfolio, HTML, CSS, JS, WebGL2, Webpack, 3D">
         <title>Kyle's Stuff</title>
     </head>
     <body>
@@ -15,17 +15,17 @@
                 <h1>Kyle Simmons</h1>
                 <nav>
                     <ul>
-                        <li><a href="#about">About</a></li>
+                        <li><a href="#bio">Bio</a></li>
                         <li><a href="#projects">Projects</a></li>
                         <li><a href="#contact">Contact</a></li>
                         <li><a href="#links">Links</a></li>
                     </ul>
                 </nav>
+                <img id="myself" src="img/myself.jpg" alt="Kyle Simmons">
             </header>
-            <section id="about">
-                <h2>About</h2>
-                <img id="myself" src="/img/myself.jpg" alt="Kyle Simmons">
-                <p>Full-stack web dev exploring systems and GPU programming.</p>
+            <section id="bio">
+                <h2>Bio</h2>
+                <p>Full-stack web dev exploring systems and GPU programming. I just like solving problems, but web design gives me a good place to publish my solutions.</p>
                 <h3>How is this site made?</h3>
                 <p>The background you're seeing is made with WebGL2, not ThreeJS. Its really just one cube, but instanced multiple times with different matrices applied to each instance. And in reality, its actually just a bunch of triangles where the vertices are manipulated by multiplying a few matrices together.</p>
                 <p>tldr; I do some math on 3D points and draw 2D triangles. Source: <a href="https://github.com/lord-xld3/webgl-2-background">trust me bro</a></p>
@@ -34,7 +34,7 @@
                 <h2>Projects</h2>
                 <div class="project">
                     <a href="https://lord-xld3.github.io/webgl-stuff/">Spinny cow!
-                    <img src="/img/spinny_cow.png" alt="Spinny cow"></a>
+                    <img src="img/spinny_cow.png" alt="Spinny cow"></a>
                     <p>The cow spins when you move your mouse or tap on the screen. This was my first project with WebGL and it works fine, but there's a lot that could be improved, like unnecessary code in the main rendering loop. Still pretty cool for my first WebGL project!</p>
                 </div>
                 <div class="project">

@@ -158,7 +158,7 @@ gl.vertexAttribDivisor(attribs.color, 1); // This attribute only changes for eac
 
 // View
 const viewMatrix = mat4.lookAt(mat4.create(), 
-	[0, 1, 4], // Eye position
+	[0, 1, 3.5], // Eye position
 	[0, 0, 0], // Target position
 	[0, 1, 0] // Up vector
 );
