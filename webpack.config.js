@@ -10,6 +10,10 @@ module.exports = {
             './src/main.js', 
             './src/style.css', 
             './src/img/myself.jpg',
+            './src/img/spinny_cow.png',
+            './src/img/mandelbrot.png',
+            './src/img/boundary_tracing.png',
+            './src/img/maf_cal.png',
         ],
     },
     output: {
