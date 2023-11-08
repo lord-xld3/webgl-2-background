@@ -10,11 +10,11 @@ module.exports = {
             './src/main.js', 
             './src/style.css', 
             './src/img/myself.jpg',
-            './src/img/spinny_cow.png',
-            './src/img/mandelbrot.png',
-            './src/img/boundary_tracing.png',
-            './src/img/maf_cal.png',
-            './src/img/portfolio_icon.png',
+            './src/img/spinny_cow.webp',
+            './src/img/mandelbrot.webp',
+            './src/img/boundary_tracing.webp',
+            './src/img/maf_cal.webp',
+            './src/img/portfolio_icon.webp',
         ],
     },
     output: {
@@ -28,7 +28,7 @@ module.exports = {
                 use: [MiniCssExtractPlugin.loader, 'css-loader'],
             },
             {
-                test: /\.(png|svg|jpg|gif)$/,
+                test: /\.(png|svg|jpg|gif|webp)$/,
                 use: {
                     loader: 'file-loader',
                     options: {
