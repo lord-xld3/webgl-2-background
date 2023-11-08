@@ -19,7 +19,6 @@
                         <li><a href="#bio">Bio</a></li>
                         <li><a href="#projects">Projects</a></li>
                         <li><a href="#contact">Contact</a></li>
-                        <li><a href="#links">Links</a></li>
                     </ul>
                 </nav>
                 <img id="myself" src="img/myself.jpg" alt="Kyle Simmons">
@@ -48,12 +47,12 @@
                         <li>Other sites exist that use fragment shaders for the same purpose</li>
                     </ul>
                     <p>Due to these limitations, I've stopped working on it until we can finally use compute shaders on the web. There's a plethora of ways to optimize a Mandelbrot set, but they're not universally beneficial. Ideally, the CPU should predict which pixels actually need to be processed and hand that off to the GPU. Whether its symmetry, perodicity, or boundary tracing. In reality, a good GPU is so fast that it can render multiple frames per second.</p>
-                    <p>It was still a cool project, and I learned things about complex numbers, iterators and collections in Rust, and NOT mutably borrowing within nested parallel iterators. Oh, I also made an unsafe function that mutates a raw pointer from a Vec and it worked, but it was slower.</p>
+                    <p>It was still a cool project, and I learned things about complex numbers, iterators and collections in Rust, and NOT mutably borrowing within nested parallel iterators. I also made an unsafe function that mutates a raw pointer from a Vec and returns a Box, but it was slower than just using the Vec.</p>
                 </div>
                 <div class="project">
                     <a href="https://github.com/lord-xld3/bounds_tracing">Boundary tracing with Python
                     <img src="img/boundary_tracing.webp" alt="Boundary tracing"></a>
-                    <p>This was one of my first real projects with Python. Its good for building a project quickly, but Python sucks man. Give me back my curly boys, get rid of the __init__ junk, and give me immutable types with static analysis. As for the actual boundary tracing logic? It works sometimes. I'm not going to elaborate further, there's plenty of papers on different algorithms for different shapes. My algorithm is not one of those, I just drew some pictures in ms paint and tried to figure it out.</p>
+                    <p>This was one of my first real projects with Python. Its good for building a project quickly, but I really don't like it. Give me back my curly brackets, get rid of the __init__ junk, and give me immutable types. As for the actual boundary tracing logic? It works sometimes. I'm not going to elaborate further, there's plenty of papers on different algorithms for different shapes. My algorithm is not one of those, I just drew some pictures in ms paint and tried to figure it out.</p>
                 </div>
                 <div class="project">
                     <a href="https://github.com/lord-xld3/maf_cal">MAF calibration CLI
@@ -64,29 +63,20 @@
                     <p>There was absolutely no good reason to optimize his program further with Rust and wgpu-rs. I just wanted an excuse to use a compute shader.</p>
                 </div>
                 <h3>The rest of these projects were part of my full stack coding bootcamp at Utah University</h3>
-                <p>Look, if I can mutate a raw pointer in Rust and rotate some instanced elements with WebGL, do you really need proof that I can setup databases and APIs? I'm not going to go into detail for these ones, here's some links:</p>
                 <ul>
                     <li><a href="https://github.com/lord-xld3/soshall-net">Social network API</a></li>
                     <li><a href="https://github.com/lord-xld3/ecomm-backend">E-commerce backend</a></li>
                     <li><a href="https://github.com/lord-xld3/cms-blog">CMS blog</a></li>
                     <li><a href="https://github.com/lord-xld3/wcbiate">PWA text editor</a></li>
+                    <li><a href="https://github.com/lord-xld3">...and many more</a></li>
                 </ul>
-                <p>If you really want to see the rest, go to my <a href="https://github.com/lord-xld3">GitHub profile</a></p>
             </section>
             <section id="contact">
                 <h2>Contact</h2>
-                <p>Send me an email at <a href="mailto:simmons.kyle.b@gmail.com">simmons.kyle.b@gmail.com</a></p>
-                <p>Normally I'd put more info here like a phone number but you'll just have to email me.</p>
-            </section>
-            <section id="links">
-                <h2>Links</h2>
-                <p>Here's some links to my other profiles:</p>
+                <p>Send me an email at <a href="mailto:simmons.kyle.b@gmail.com">simmons.kyle.b@gmail.com</a> or find me on:</p>
                 <ul>
                     <li><a href="https://github.com/lord-xld3">GitHub</a></li>
                     <li><a href="https://www.linkedin.com/in/kyle-simmons-577167296/">LinkedIn</a></li>
-                    <li><a href="https://www.youtube.com/@Xld3beats">YouTube</a></li>
-                    <li><a href="twitch.tv/xld3">Twitch</a></li>
-                    <li><a href="steamcommunity.com/id/xld3">Steam</a></li>
                 </ul>
             </section>
             <footer>This page was built from scratch with <a href="https://github.com/lord-xld3/webgl-2-background">blood, sweat and tears.</a></footer>
