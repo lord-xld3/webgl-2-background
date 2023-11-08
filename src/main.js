@@ -14,25 +14,37 @@ const vertexShaderSource = `#version 300 es
 	in vec4 position;
 	in vec4 color;
 	in mat4 model;
+	in vec3 normal;
+
 	uniform mat4 view;
 	uniform mat4 projection;
+	uniform mat4 inverseTranspose;
 	
 	out vec4 v_color;
+	out vec3 v_normal;
 
 	void main() {
 		gl_Position = projection * view * model * position;
 		v_color = color;
+		v_normal = mat3(model) * normal;
 	}
 `;
 
 const fragmentShaderSource = `#version 300 es
 	precision highp float;
 	in vec4 v_color;
+	in vec3 v_normal;
+
+	uniform vec3 lightDirection;
 	
 	out vec4 outColor;
 
 	void main() {
+		vec3 normal = normalize(v_normal);
+		float light = dot(normal, lightDirection);
+		light += 0.5; // Add ambient lighting
 		outColor = v_color;
+		outColor.rgb *= light;
 	}
 `;
 
@@ -44,10 +56,13 @@ const attribs = glUtils.getAttribLocations(gl, shaderProgram, [
 	'position',
 	'color',
 	'model',
+	'normal',
 ]);
 const uniforms = glUtils.getUniformLocations(gl, shaderProgram, [
 	'view',
 	'projection',
+	'lightDirection',
+	'inverseTranspose',
 ]);
 
 // Create a vertex array object (attribute state)
@@ -75,6 +90,61 @@ gl.bindBuffer(gl.ARRAY_BUFFER, cubePositionBuffer);
 gl.enableVertexAttribArray(attribs.position);
 gl.vertexAttribPointer(
 	attribs.position, // Attribute location
+	3, // Number of elements per attribute
+	gl.FLOAT, // Type of elements
+	false, // Normalized
+	0, // Stride, 0 = auto
+	0 // Offset, 0 = auto
+);
+
+// Define normals for lighting
+const cubeNormalBuffer = glUtils.makeBuffer(gl,
+	new Float32Array([
+		// Front
+		0, 0, -1,
+		0, 0, -1,
+		0, 0, -1,
+		0, 0, -1,
+
+		// Right
+		1, 0, 0,
+		1, 0, 0,
+		1, 0, 0,
+		1, 0, 0,
+
+		// Back
+		0, 0, 1,
+		0, 0, 1,
+		0, 0, 1,
+		0, 0, 1,
+
+		// Left
+		-1, 0, 0,
+		-1, 0, 0,
+		-1, 0, 0,
+		-1, 0, 0,
+
+		// Top
+		0, 1, 0,
+		0, 1, 0,
+		0, 1, 0,
+		0, 1, 0,
+
+		// Bottom
+		0, -1, 0,
+		0, -1, 0,
+		0, -1, 0,
+		0, -1, 0,
+	]),
+	gl.ARRAY_BUFFER,
+	gl.STATIC_DRAW
+);
+
+// Specify the normal attribute for the vertices
+gl.bindBuffer(gl.ARRAY_BUFFER, cubeNormalBuffer);
+gl.enableVertexAttribArray(attribs.normal);
+gl.vertexAttribPointer(
+	attribs.normal, // Attribute location
 	3, // Number of elements per attribute
 	gl.FLOAT, // Type of elements
 	false, // Normalized
@@ -197,7 +267,7 @@ function render() {
 
 	// Rotate the camera
 	gl.uniformMatrix4fv(uniforms.view, false,
-		mat4.rotate(viewMatrix, viewMatrix, 0.01, [1, 0, 0])
+		mat4.rotate(viewMatrix, viewMatrix, 0, [1, 0, 0])
 	);
 	
 	// Upload the projection matrix in case it changed
@@ -218,6 +288,10 @@ function render() {
 	// Upload the new matrix data
 	gl.bindBuffer(gl.ARRAY_BUFFER, matrixBuffer);
 	gl.bufferSubData(gl.ARRAY_BUFFER, 0, matrixData);
+
+	// Upload the light direction
+	gl.uniform3fv(uniforms.lightDirection, [0.5, 0.7, 1]);
+	gl.uniformMatrix4fv(uniforms.inverseTranspose, false, mat4.invert(mat4.create(), mat4.transpose(mat4.create(), viewMatrix)));
 
 	// Draw the cube instances
 	gl.drawElementsInstanced(
