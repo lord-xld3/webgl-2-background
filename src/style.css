@@ -86,8 +86,16 @@ a {
 }
 
 section {
-    width: 90%;
     text-align: start;
+}
+
+footer {
+    padding: 1rem 0.5rem 1rem;
+    text-align: center;
+}
+
+section, footer {
+    width: 90%;
 }
 
 section a {
@@ -96,10 +104,6 @@ section a {
 
 section ul{
     padding-left: 1.5rem;
-}
-
-footer {
-    padding: 0 2rem 2rem;
 }
 
 .project a {
