@@ -132,7 +132,7 @@ glUtils.makeBuffer(gl,
 const numIndices = 36;
 
 // Setup matrices, one per instance
-const numInstances = 4;
+const numInstances = 6;
 const matrixData = new Float32Array(numInstances * 16);
 const matrices = [];
 for (let i = 0; i < numInstances; ++i) {
@@ -148,7 +148,7 @@ for (let i = 0; i < numInstances; ++i) {
 const matrixBuffer = glUtils.makeBuffer(gl, matrixData, gl.ARRAY_BUFFER, gl.DYNAMIC_DRAW);
 
 // Set attributes for each matrix
-for (let i = 0; i < 4; i++) { // 4 attributes
+for (let i = 0; i < 6; i++) { // 4 attributes
 	const location = attribs.a_modelMatrix + i;
 	gl.enableVertexAttribArray(location);
 	const offset = i * 16; // 4 floats per row, 4 bytes per float
@@ -170,6 +170,8 @@ glUtils.makeBuffer(gl,
 		0, 1, 0, // Green
 		0, 0, 1, // Blue
 		1, 1, 0, // Yellow
+		0, 1, 1, // Cyan
+		1, 0, 1, // Magenta
 	]),
 	gl.ARRAY_BUFFER,
 	gl.STATIC_DRAW
@@ -189,7 +191,7 @@ glUtils.setAttribPointer(gl,
 gl.vertexAttribDivisor(attribs.a_color, 1); // This attribute only changes for each 1 instance
 
 // View
-const eyePosition = [0, 1, 6];
+const eyePosition = [0, 0, 6];
 const viewMatrix = mat4.lookAt(mat4.create(), 
 	eyePosition,
 	[0, 0, 0], // Target position
@@ -213,7 +215,7 @@ window.addEventListener('resize', function() {
 
 // Pre-render setup
 let tick = 0;
-let tickRate = 0.01;
+let tickRate = 0.001;
 let maxTick = 2 * Math.PI; // 360 degrees
 
 gl.useProgram(shaderProgram);
@@ -246,14 +248,25 @@ function render() {
 	tick = (tick + tickRate) % maxTick;
 
 	// Update the matrices
-	matrices.forEach((matrix, i) => {
-		mat4.identity(matrix);
-		mat4.translate(matrix, matrix, [-4.5 + (3 * i), 0, 0 ])
-		mat4.rotate(matrix, matrix, 
-			Math.sin(tick) * Math.PI * (0.3 + i * 0.5), // Angle
-			[1, 0.5, -0.7] // Axis
+	for (let i=0; i < 3; i++) {
+		// Top row
+		mat4.identity(matrices[i]);
+		mat4.translate(matrices[i], matrices[i], [-4 + 4 * i, 1.5, 0]);
+		mat4.rotate(matrices[i], matrices[i], 
+			Math.sin(tick * (i + 1)) * Math.PI * 2, // angle
+			[1, -0.5, -1] // axis
 		);
-	});
+	}
+
+	for (let i=3; i < 6; i++) {
+		// Bottom row
+		mat4.identity(matrices[i]);
+		mat4.translate(matrices[i], matrices[i], [-4 + 4 * (i % 3), -1.5, 0]);
+		mat4.rotate(matrices[i], matrices[i], 
+			Math.sin(tick * (i)) * Math.PI * -2, // angle
+			[1, -0.5, -1] // axis
+		);
+	}
 
 	// Upload the new matrix data
 	gl.bindBuffer(gl.ARRAY_BUFFER, matrixBuffer);
