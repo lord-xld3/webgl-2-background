@@ -12,37 +12,64 @@ if (!gl) {
 
 const vertexShaderSource = `#version 300 es
 	in vec4 a_position;
-	in vec4 a_color;
+	in vec3 a_color;
 	in mat4 a_modelMatrix;
-
+	
 	uniform mat4 u_view;
 	uniform mat4 u_projection;
-	
-	out vec4 v_color;
+	uniform vec3 u_lightPosition;
+	uniform vec3 u_viewPosition;
+
 	out vec3 v_normal;
+	out vec3 v_color;
+	out vec3 v_surfaceToLight;
+	out vec3 v_surfaceToView;
 
 	void main() {
-		gl_Position = u_projection * u_view * a_modelMatrix * a_position;
-		v_color = a_color;
+		vec4 worldPosition = a_modelMatrix * a_position;
+		gl_Position = u_projection * u_view * worldPosition;
 		v_normal = mat3(a_modelMatrix) * a_position.xyz;
+		v_color = a_color;
+		v_surfaceToLight = u_lightPosition - worldPosition.xyz;
+		v_surfaceToView = u_viewPosition - worldPosition.xyz;
 	}
 `;
 
 const fragmentShaderSource = `#version 300 es
 	precision highp float;
-	in vec4 v_color;
-	in vec3 v_normal;
-
-	uniform vec3 u_lightDirection;
-	uniform vec3 u_ambientLight;
 	
+	in vec3 v_normal;
+	in vec3 v_color;
+	in vec3 v_surfaceToLight;
+	in vec3 v_surfaceToView;
+	
+	uniform vec3 u_lightColor;
+	uniform vec3 u_ambientLight;
+	uniform float u_shininess;
+	uniform vec3 u_specularColor;
+
 	out vec4 outColor;
 
 	void main() {
 		vec3 normal = normalize(v_normal);
-		float light = dot(normal, u_lightDirection);
-		outColor = v_color;
-		outColor.rgb *= light + u_ambientLight;
+		vec3 surfaceToLightDirection = normalize(v_surfaceToLight);
+		vec3 surfaceToViewDirection = normalize(v_surfaceToView);
+	
+		float light = max(dot(normal, surfaceToLightDirection), 0.0);
+	
+		// Calculate the reflection vector
+		vec3 reflection = reflect(-surfaceToLightDirection, normal);
+	
+		// Calculate the half-vector
+		vec3 halfVector = normalize(surfaceToLightDirection + surfaceToViewDirection);
+	
+		// Calculate the specular term using the half-vector and shininess
+		float specular = pow(max(dot(reflection, halfVector), 0.0), u_shininess);
+	
+		vec3 lightWeighting = u_lightColor * v_color * light + u_specularColor * specular;
+		vec3 ambient = u_ambientLight * v_color;
+	
+		outColor = vec4(lightWeighting + ambient, 1.0);
 	}
 `;
 
@@ -58,8 +85,12 @@ const attribs = glUtils.getAttribLocations(gl, shaderProgram, [
 const uniforms = glUtils.getUniformLocations(gl, shaderProgram, [
 	'u_view',
 	'u_projection',
-	'u_lightDirection',
+	'u_lightPosition',
+	'u_lightColor',
+	'u_viewPosition',
 	'u_ambientLight',
+	'u_shininess',
+	'u_specularColor',
 ]);
 
 // Create a vertex array object (attribute state)
@@ -208,8 +239,12 @@ gl.enable(gl.CULL_FACE);
 gl.frontFace(gl.CW);
 
 gl.uniformMatrix4fv(uniforms.u_view, false, viewMatrix);
-gl.uniform3fv(uniforms.u_lightDirection, [0.5, 0.7, 1]);
-gl.uniform3fv(uniforms.u_ambientLight, [0.1, 0.1, 0.1]);
+gl.uniform3fv(uniforms.u_lightPosition, eyePosition);
+gl.uniform3fv(uniforms.u_lightColor, [1.0, 1.0, 1.0]);
+gl.uniform3fv(uniforms.u_viewPosition, eyePosition);
+gl.uniform3fv(uniforms.u_ambientLight, [0.2, 0.2, 0.2]);
+gl.uniform1f(uniforms.u_shininess, 16.0);
+gl.uniform3fv(uniforms.u_specularColor, [1, 1, 1]);
 
 // Start the rendering loop
 window.dispatchEvent(new Event('resize')); // Set the initial canvas size
