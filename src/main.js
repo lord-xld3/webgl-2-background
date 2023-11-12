@@ -11,20 +11,20 @@ if (!gl) {
 }
 
 const vertexShaderSource = `#version 300 es
-	in vec4 position;
-	in vec4 color;
-	in mat4 model;
+	in vec4 a_position;
+	in vec4 a_color;
+	in mat4 a_modelMatrix;
 
-	uniform mat4 view;
-	uniform mat4 projection;
+	uniform mat4 u_view;
+	uniform mat4 u_projection;
 	
 	out vec4 v_color;
 	out vec3 v_normal;
 
 	void main() {
-		gl_Position = projection * view * model * position;
-		v_color = color;
-		v_normal = mat3(model) * position.xyz;
+		gl_Position = u_projection * u_view * a_modelMatrix * a_position;
+		v_color = a_color;
+		v_normal = mat3(a_modelMatrix) * a_position.xyz;
 	}
 `;
 
@@ -33,16 +33,16 @@ const fragmentShaderSource = `#version 300 es
 	in vec4 v_color;
 	in vec3 v_normal;
 
-	uniform vec3 lightDirection;
+	uniform vec3 u_lightDirection;
+	uniform vec3 u_ambientLight;
 	
 	out vec4 outColor;
 
 	void main() {
 		vec3 normal = normalize(v_normal);
-		float light = dot(normal, lightDirection);
-		light += 0.1; // Add ambient lighting
+		float light = dot(normal, u_lightDirection);
 		outColor = v_color;
-		outColor.rgb *= light;
+		outColor.rgb *= light + u_ambientLight;
 	}
 `;
 
@@ -51,14 +51,15 @@ const shaderProgram = glUtils.makeProgram(gl, vertexShaderSource, fragmentShader
 
 // Get attribute and uniform locations
 const attribs = glUtils.getAttribLocations(gl, shaderProgram, [
-	'position',
-	'color',
-	'model',
+	'a_position',
+	'a_color',
+	'a_modelMatrix',
 ]);
 const uniforms = glUtils.getUniformLocations(gl, shaderProgram, [
-	'view',
-	'projection',
-	'lightDirection',
+	'u_view',
+	'u_projection',
+	'u_lightDirection',
+	'u_ambientLight',
 ]);
 
 // Create a vertex array object (attribute state)
@@ -68,14 +69,14 @@ gl.bindVertexArray(cubeVAO);
 // Define cube vertices
 const cubePositionBuffer = glUtils.makeBuffer(gl,
 	new Float32Array([
-		-0.5, -0.5, -0.5,
-		0.5, -0.5, -0.5,
-		0.5, 0.5, -0.5,
-		-0.5, 0.5, -0.5,
-		-0.5, -0.5, 0.5,
-		0.5, -0.5, 0.5,
-		0.5, 0.5, 0.5,
-		-0.5, 0.5, 0.5,
+		-1, -1, -1,
+		1, -1, -1,
+		1, 1, -1,
+		-1, 1, -1,
+		-1, -1, 1,
+		1, -1, 1,
+		1, 1, 1,
+		-1, 1, 1,
 	]), 
 	gl.ARRAY_BUFFER, 
 	gl.STATIC_DRAW
@@ -83,9 +84,9 @@ const cubePositionBuffer = glUtils.makeBuffer(gl,
 
 // Specify the position attribute for the vertices
 gl.bindBuffer(gl.ARRAY_BUFFER, cubePositionBuffer);
-gl.enableVertexAttribArray(attribs.position);
+gl.enableVertexAttribArray(attribs.a_position);
 gl.vertexAttribPointer(
-	attribs.position, // Attribute location
+	attribs.a_position, // Attribute location
 	3, // Number of elements per attribute
 	gl.FLOAT, // Type of elements
 	false, // Normalized
@@ -129,7 +130,7 @@ const matrixBuffer = glUtils.makeBuffer(gl, matrixData, gl.ARRAY_BUFFER, gl.DYNA
 
 // Set attributes for each matrix
 for (let i = 0; i < 4; i++) { // 4 attributes
-	const location = attribs.model + i;
+	const location = attribs.a_modelMatrix + i;
 	gl.enableVertexAttribArray(location);
 	const offset = i * 16; // 4 floats per row, 4 bytes per float
 	gl.vertexAttribPointer(
@@ -156,20 +157,21 @@ glUtils.makeBuffer(gl,
 );
 
 // Set attributes for each color
-gl.enableVertexAttribArray(attribs.color);
+gl.enableVertexAttribArray(attribs.a_color);
 gl.vertexAttribPointer(
-	attribs.color, // Attribute location
+	attribs.a_color, // Attribute location
 	4, // Number of elements per attribute
 	gl.FLOAT, // Type of elements
 	false, // Normalized
 	0, // Stride, 0 = auto
 	0 // Offset, 0 = auto
 );
-gl.vertexAttribDivisor(attribs.color, 1); // This attribute only changes for each 1 instance
+gl.vertexAttribDivisor(attribs.a_color, 1); // This attribute only changes for each 1 instance
 
 // View
+const eyePosition = [0, 1, 6];
 const viewMatrix = mat4.lookAt(mat4.create(), 
-	[0, 1, 3.5], // Eye position
+	eyePosition,
 	[0, 0, 0], // Target position
 	[0, 1, 0] // Up vector
 );
@@ -195,9 +197,23 @@ window.addEventListener('resize', function() {
 	);
 });
 
+// Pre-render setup
 let tick = 0;
 let tickRate = 0.01;
 let maxTick = 2 * Math.PI; // 360 degrees
+
+gl.useProgram(shaderProgram);
+gl.enable(gl.DEPTH_TEST);
+gl.enable(gl.CULL_FACE);
+gl.frontFace(gl.CW);
+
+gl.uniformMatrix4fv(uniforms.u_view, false, viewMatrix);
+gl.uniform3fv(uniforms.u_lightDirection, [0.5, 0.7, 1]);
+gl.uniform3fv(uniforms.u_ambientLight, [0.1, 0.1, 0.1]);
+
+// Start the rendering loop
+window.dispatchEvent(new Event('resize')); // Set the initial canvas size
+render();
 
 // Main rendering loop
 function render() {
@@ -206,20 +222,15 @@ function render() {
 	gl.clearColor(0, 0, 0, 0);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-	// Rotate the camera
-	gl.uniformMatrix4fv(uniforms.view, false,
-		mat4.rotate(viewMatrix, viewMatrix, 0, [1, 0, 0])
-	);
-	
 	// Upload the projection matrix in case it changed
-	gl.uniformMatrix4fv(uniforms.projection, false, projectionMatrix);
+	gl.uniformMatrix4fv(uniforms.u_projection, false, projectionMatrix);
 
 	tick = (tick + tickRate) % maxTick;
 
 	// Update the matrices
 	matrices.forEach((matrix, i) => {
 		mat4.identity(matrix);
-		mat4.translate(matrix, matrix, [-3 + (2 * i), 0, 0 ])
+		mat4.translate(matrix, matrix, [-4.5 + (3 * i), 0, 0 ])
 		mat4.rotate(matrix, matrix, 
 			Math.sin(tick) * Math.PI * (0.3 + i * 0.5), // Angle
 			[1, 0.5, -0.7] // Axis
@@ -229,9 +240,6 @@ function render() {
 	// Upload the new matrix data
 	gl.bindBuffer(gl.ARRAY_BUFFER, matrixBuffer);
 	gl.bufferSubData(gl.ARRAY_BUFFER, 0, matrixData);
-
-	// Upload the light direction
-	gl.uniform3fv(uniforms.lightDirection, [0.5, 0.7, 1]);
 
 	// Draw the cube instances
 	gl.drawElementsInstanced(
@@ -245,14 +253,3 @@ function render() {
 	// Request the next frame
 	requestAnimationFrame(render);
 }
-
-// Prepare WebGL for rendering
-gl.enable(gl.DEPTH_TEST);
-
-// This can go in the render loop if there are multiple shader programs
-// You may also need to bind the vertex array object for each object
-gl.useProgram(shaderProgram);
-
-// Start the rendering loop
-window.dispatchEvent(new Event('resize')); // Set the initial canvas size
-render();
