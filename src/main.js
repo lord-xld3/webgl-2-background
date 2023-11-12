@@ -54,21 +54,12 @@ const fragmentShaderSource = `#version 300 es
 		vec3 normal = normalize(v_normal);
 		vec3 surfaceToLightDirection = normalize(v_surfaceToLight);
 		vec3 surfaceToViewDirection = normalize(v_surfaceToView);
-	
 		float light = max(dot(normal, surfaceToLightDirection), 0.0);
-	
-		// Calculate the reflection vector
 		vec3 reflection = reflect(-surfaceToLightDirection, normal);
-	
-		// Calculate the half-vector
 		vec3 halfVector = normalize(surfaceToLightDirection + surfaceToViewDirection);
-	
-		// Calculate the specular term using the half-vector and shininess
 		float specular = pow(max(dot(reflection, halfVector), 0.0), u_shininess);
-	
 		vec3 lightWeighting = u_lightColor * v_color * light + u_specularColor * specular;
 		vec3 ambient = u_ambientLight * v_color;
-	
 		outColor = vec4(lightWeighting + ambient, 1.0);
 	}
 `;
@@ -98,7 +89,7 @@ const cubeVAO = gl.createVertexArray();
 gl.bindVertexArray(cubeVAO);
 
 // Define cube vertices
-const cubePositionBuffer = glUtils.makeBuffer(gl,
+glUtils.makeBuffer(gl,
 	new Float32Array([
 		-1, -1, -1,
 		1, -1, -1,
@@ -114,19 +105,19 @@ const cubePositionBuffer = glUtils.makeBuffer(gl,
 );
 
 // Specify the position attribute for the vertices
-gl.bindBuffer(gl.ARRAY_BUFFER, cubePositionBuffer);
-gl.enableVertexAttribArray(attribs.a_position);
-gl.vertexAttribPointer(
-	attribs.a_position, // Attribute location
-	3, // Number of elements per attribute
-	gl.FLOAT, // Type of elements
-	false, // Normalized
-	0, // Stride, 0 = auto
-	0 // Offset, 0 = auto
+glUtils.setAttribPointer(gl,
+	attribs.a_position,
+	{
+		size: 3,
+		type: gl.FLOAT,
+		normalize: false,
+		stride: 0,
+		offset: 0,
+	},
 );
 
 // Define cube indices
-const cubeIndexBuffer = glUtils.makeBuffer(gl,
+glUtils.makeBuffer(gl,
 	new Uint16Array([
 		0, 1, 2, 2, 3, 0, // Front face
 		1, 5, 6, 6, 2, 1, // Right face
@@ -139,9 +130,6 @@ const cubeIndexBuffer = glUtils.makeBuffer(gl,
 	gl.STATIC_DRAW
 );
 const numIndices = 36;
-
-// Bind the index buffer
-gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeIndexBuffer);
 
 // Setup matrices, one per instance
 const numInstances = 4;
@@ -178,24 +166,25 @@ for (let i = 0; i < 4; i++) { // 4 attributes
 // Setup a color for each instance
 glUtils.makeBuffer(gl,
 	new Float32Array([
-		1, 0, 0, 1, // Red
-		0, 1, 0, 1, // Green
-		0, 0, 1, 1, // Blue
-		1, 1, 0, 1, // Yellow
+		1, 0, 0, // Red
+		0, 1, 0, // Green
+		0, 0, 1, // Blue
+		1, 1, 0, // Yellow
 	]),
 	gl.ARRAY_BUFFER,
 	gl.STATIC_DRAW
 );
 
 // Set attributes for each color
-gl.enableVertexAttribArray(attribs.a_color);
-gl.vertexAttribPointer(
-	attribs.a_color, // Attribute location
-	4, // Number of elements per attribute
-	gl.FLOAT, // Type of elements
-	false, // Normalized
-	0, // Stride, 0 = auto
-	0 // Offset, 0 = auto
+glUtils.setAttribPointer(gl,
+	attribs.a_color,
+	{
+		size: 3,
+		type: gl.FLOAT,
+		normalize: false,
+		stride: 0,
+		offset: 0,
+	},
 );
 gl.vertexAttribDivisor(attribs.a_color, 1); // This attribute only changes for each 1 instance
 
@@ -220,12 +209,6 @@ window.addEventListener('resize', function() {
 	canvas.width = window.innerWidth;
 	canvas.height = window.innerHeight;
 	gl.viewport(0, 0, canvas.width, canvas.height);
-	mat4.perspective(mat4.create(), 
-		45, // Field of view
-		canvas.width / canvas.height, // Aspect ratio
-		0.1, // Near
-		100 // Far
-	);
 });
 
 // Pre-render setup
