@@ -11,6 +11,59 @@
     </head>
     <body>
         <canvas id="canvas"></canvas>
+        <button id="toggleOverlay">Toggle overlay</button>
+        <div id="controls">
+            <div id="cameraControls">
+                
+                <h3>Camera</h3>
+                <label for="eyeX">Position X:</label>
+                <input type="range" id="eyeX" min="-10" max="10" step="0.1" value="0">
+        
+                <label for="eyeY">Position Y:</label>
+                <input type="range" id="eyeY" min="-10" max="10" step="0.1" value="0">
+        
+                <label for="eyeZ">Position Z:</label>
+                <input type="range" id="eyeZ" min="-10" max="10" step="0.1" value="6">
+
+                <button id="resetCamera">Reset Camera</button>
+                
+                <h3>Target</h3>
+                <label for="targetX">Position X:</label>
+                <input type="range" id="targetX" min="-10" max="10" step="0.1" value="0">
+        
+                <label for="targetY">Position Y:</label>
+                <input type="range" id="targetY" min="-10" max="10" step="0.1" value="0">
+        
+                <label for="targetZ">Position Z:</label>
+                <input type="range" id="targetZ" min="-10" max="10" step="0.1" value="0">
+
+                <button id="resetTarget">Reset Target</button>
+
+                <h3>Projection</h3>
+                <label for="fov">Field of view:</label>
+                <input type="range" id="fov" min="0" max="180" step="1" value="60">
+
+                <label for="aspect">Aspect ratio:</label>
+                <input type="range" id="aspect" min="0" max="10" step="0.1" value="1">
+
+                <label for="near">Near plane:</label>
+                <input type="range" id="near" min="0" max="10" step="0.1" value="0.1">
+
+                <label for="far">Far plane:</label>
+                <input type="range" id="far" min="0" max="100" step="0.1" value="100">
+
+                <button id="resetProjection">Reset Projection</button>
+
+                <h3>Tick</h3>
+                <label for="tickSpeed">Tick speed:</label>
+                <input type="range" id="tickSpeed" min="0" max="10" step="0.001" value="0.01">
+
+                <label for="maxTicks">Max tick:</label>
+                <input type="range" id="maxTick" min="0" max="1000" step="1" value="100">
+
+                <button id="resetTick">Reset Tick</button>
+            </div>
+        </div>
         <div id="overlay">
             <header>
                 <h1>Kyle Simmons</h1>

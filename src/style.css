@@ -28,6 +28,58 @@ canvas {
     align-items: center;
 }
 
+#toggleOverlay {
+    position: fixed;
+    top: 0;
+    right: 0;
+    padding: 0.5rem;
+    font-size: x-large;
+    background-color: rgba(0, 0, 0, 0);
+    color: #ffffff;
+    text-decoration: none;
+    border: none;
+    z-index: 1;
+}
+
+#toggleOverlay:hover {
+    color: #ff0000;
+}
+
+#controls h3 {
+    margin: 0.25rem 0;
+    font-size: large;
+}
+
+#controls {
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 0.5rem;
+    font-size: large;
+    background-color: rgba(0, 0, 0, 0.4);
+    color: #ffffff;
+    text-decoration: none;
+    border: none;
+    z-index: 1;
+    display: none;
+}
+
+#controls div {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+}
+
+#controls div button {
+    background-color: rgba(0, 0, 0, 0);
+    color: #ffffff;
+    border: none;
+}
+
+#controls div button:hover {
+    color: #ff0000;
+}
+
 header {
     padding-top: 1rem;
 }

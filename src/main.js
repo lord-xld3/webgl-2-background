@@ -217,6 +217,19 @@ window.addEventListener('resize', function() {
 	gl.viewport(0, 0, canvas.width, canvas.height);
 });
 
+const toggleOverlayButton = document.getElementById('toggleOverlay');
+const controls = document.getElementById('controls');
+toggleOverlayButton.addEventListener('click', function() {
+	const overlay = document.getElementById('overlay');
+	if (overlay.style.display === 'none') {
+		overlay.style.display = 'block';
+		controls.style.display = 'none';
+	} else {
+		overlay.style.display = 'none';
+		controls.style.display = 'block';
+	}
+});
+
 // Pre-render setup
 let tick = 0;
 let tickRate = 0.001;
