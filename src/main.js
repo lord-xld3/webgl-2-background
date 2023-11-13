@@ -53,14 +53,18 @@ const fragmentShaderSource = `#version 300 es
 	void main() {
 		vec3 normal = normalize(v_normal);
 		vec3 surfaceToLightDirection = normalize(v_surfaceToLight);
-		vec3 surfaceToViewDirection = normalize(v_surfaceToView);
-		float light = max(dot(normal, surfaceToLightDirection), 0.0);
-		vec3 reflection = reflect(-surfaceToLightDirection, normal);
-		vec3 halfVector = normalize(surfaceToLightDirection + surfaceToViewDirection);
-		float specular = pow(max(dot(reflection, halfVector), 0.0), u_shininess);
-		vec3 lightWeighting = u_lightColor * v_color * light + u_specularColor * specular;
-		vec3 ambient = u_ambientLight * v_color;
-		outColor = vec4(lightWeighting + ambient, 1.0);
+		vec3 lightIntensity = 
+			
+			// Diffuse lighting
+			u_lightColor * v_color * max(dot(normal, surfaceToLightDirection), 0.0) 
+			
+			// Specular lighting
+			+ u_specularColor * pow(max(dot(
+				reflect(-surfaceToLightDirection, normal),
+				normalize(surfaceToLightDirection + normalize(v_surfaceToView))
+			), 0.0), u_shininess);
+			
+		outColor = vec4(lightIntensity + u_ambientLight * v_color, 1.0);
 	}
 `;
 
@@ -227,9 +231,9 @@ gl.uniformMatrix4fv(uniforms.u_view, false, viewMatrix);
 gl.uniform3fv(uniforms.u_lightPosition, eyePosition);
 gl.uniform3fv(uniforms.u_lightColor, [1.0, 1.0, 1.0]);
 gl.uniform3fv(uniforms.u_viewPosition, eyePosition);
-gl.uniform3fv(uniforms.u_ambientLight, [0.2, 0.2, 0.2]);
-gl.uniform1f(uniforms.u_shininess, 16.0);
-gl.uniform3fv(uniforms.u_specularColor, [1, 1, 1]);
+gl.uniform3fv(uniforms.u_ambientLight, [0.1, 0.1, 0.1]);
+gl.uniform1f(uniforms.u_shininess, 32.0);
+gl.uniform3fv(uniforms.u_specularColor, [1.0, 1.0, 1.0]);
 
 // Start the rendering loop
 window.dispatchEvent(new Event('resize')); // Set the initial canvas size
