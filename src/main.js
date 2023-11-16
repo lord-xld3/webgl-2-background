@@ -236,10 +236,8 @@ gl.uniform3fv(uniforms.u_ambientLight, [0.1, 0.1, 0.1]);
 gl.uniform1f(uniforms.u_shininess, 32.0);
 gl.uniform3fv(uniforms.u_specularColor, [1.0, 1.0, 1.0]);
 
-// Toggle to display overlay
 const overlayButton = document.getElementById('toggleOverlay');
 const overlayElement = document.getElementById('overlay');
-debug.toggleDisplay(overlayElement, overlayButton);
 
 // Toggle to display controls
 const controlsElement = document.getElementById('controls');
@@ -248,12 +246,14 @@ debug.toggleDisplay(controlsElement, controlsButton);
 
 // Special toggle for overlay/control buttons
 overlayButton.addEventListener('click', function() {
-	if (controlsButton.style.display === 'block') {
-		controlsButton.style.display = 'none';
-		overlayButton.textContent = ">>"
-	} else {
+	if (overlayElement.style.display === 'flex') {
+		overlayElement.style.display = 'none';
+		overlayButton.textContent = '<<';
 		controlsButton.style.display = 'block';
-		overlayButton.textContent = "<<"
+	} else {
+		overlayElement.style.display = 'flex';
+		overlayButton.textContent = '>>';
+		controlsButton.style.display = 'none';
 	}
 });
 
