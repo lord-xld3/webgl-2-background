@@ -63,26 +63,27 @@ a, .toggers:hover, #controls div button:hover {
 #controls {
     top: 0;
     left: 0;
-    padding: 0.5rem;
-    font-size: large;
+    font-size: x-large;
     background-color: rgba(0, 0, 0, 0.4);
     color: #ffffff;
     text-decoration: none;
     border: none;
     z-index: 1;
     flex-wrap: wrap;
+    align-content: flex-start;
+    height: 100%;
+    width: 100%;
 }
 
 #controls div {
+    margin: 0 0 0 0.5rem;
     display: flex;
     flex-direction: row;
-    align-items: start;
+    align-items: center;
 }
 
-#controls div button {
-    background-color: rgba(0, 0, 0, 0);
-    color: #ffffff;
-    border: none;
+#controls div * {
+    margin: 0 0.5rem 0 0;
 }
 
 header {

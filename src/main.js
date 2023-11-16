@@ -46,7 +46,7 @@ const fragmentShaderSource = `#version 300 es
 	
 	uniform vec3 u_lightColor;
 	uniform vec3 u_ambientLight;
-	uniform float u_shininess;
+	uniform float u_specular_power;
 	uniform vec3 u_specularColor;
 
 	out vec4 outColor;
@@ -68,7 +68,7 @@ const fragmentShaderSource = `#version 300 es
 					),
 					0.0
 				),
-				u_shininess
+				u_specular_power
 			);
 
 		outColor = vec4(lightIntensity + u_ambientLight * v_color, 1.0);
@@ -91,7 +91,7 @@ const uniforms = glUtils.getUniformLocations(gl, shaderProgram, [
 	'u_lightColor',
 	'u_viewPosition',
 	'u_ambientLight',
-	'u_shininess',
+	'u_specular_power',
 	'u_specularColor',
 ]);
 
@@ -236,7 +236,7 @@ var maxTick = 2 * Math.PI;
 var ambientLight = [0.1, 0.1, 0.1],
 lightPosition = [0, 0, 6],
 lightColor = [1, 1, 1],
-shininess = 32,
+specular_power = 32,
 specularColor = [1, 1, 1];
 
 // View
@@ -460,11 +460,11 @@ debug.setControl(controlsElement, 'Ambient B', 'range',
 	},
 );
 
-debug.setControl(controlsElement, 'Shininess', 'range',
+debug.setControl(controlsElement, 'Specular power', 'range',
 	{ min: 0, max: 128, step: 1, init: 32 },
 	function(value) {
-		shininess = value;
-		gl.uniform1f(uniforms.u_shininess, shininess);
+		specular_power = value;
+		gl.uniform1f(uniforms.u_specular_power, specular_power);
 	},
 );
 
@@ -492,6 +492,40 @@ debug.setControl(controlsElement, 'Specular B', 'range',
 	},
 );
 
+debug.setControl(controlsElement, 'Depth Test', 'checkbox',
+	{ init: true },
+	function(value) {
+		if (value) {
+			gl.enable(gl.DEPTH_TEST);
+		} else {
+			gl.disable(gl.DEPTH_TEST);
+		}
+	},
+);
+
+debug.setControl(controlsElement, 'Cull Face', 'checkbox',
+	{ init: true },
+	function(value) {
+		if (value) {
+			gl.enable(gl.CULL_FACE);
+		} else {
+			gl.disable(gl.CULL_FACE);
+		}
+	},
+);
+
+debug.setControl(controlsElement, 'Cull CW', 'checkbox',
+	{ init: true },
+	function(value) {
+		if (value) {
+			gl.frontFace(gl.CW);
+		} else {
+			gl.frontFace(gl.CCW);
+		}
+	},
+);
+
+
 // Pre-render
 gl.useProgram(shaderProgram);
 gl.enable(gl.DEPTH_TEST);
@@ -504,7 +538,7 @@ gl.uniform3fv(uniforms.u_lightPosition, lightPosition);
 gl.uniform3fv(uniforms.u_lightColor, lightColor);
 gl.uniform3fv(uniforms.u_viewPosition, eyePosition);
 gl.uniform3fv(uniforms.u_ambientLight, ambientLight);
-gl.uniform1f(uniforms.u_shininess, shininess);
+gl.uniform1f(uniforms.u_specular_power, specular_power);
 gl.uniform3fv(uniforms.u_specularColor, specularColor);
 gl.uniformMatrix4fv(uniforms.u_projection, false, projectionMatrix);
 
