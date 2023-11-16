@@ -28,6 +28,68 @@ canvas {
     align-items: center;
 }
 
+.buttons-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    position: fixed;
+    top: 0.25rem;
+    right: 0.25rem;
+    gap: 0.25rem;
+    z-index: 2;
+}
+
+.toggers {
+    margin: 0;
+    padding: 0.25rem;
+    font-size: x-large;
+    background-color: rgba(0, 0, 0, 0);
+    color: #ffffff;
+    text-decoration: none;
+    z-index: 1;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.toggers:hover {
+    color: #ff0000;
+}
+
+#controls h3 {
+    margin: 0.25rem 0;
+    font-size: large;
+}
+
+#controls {
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 0.5rem;
+    font-size: large;
+    background-color: rgba(0, 0, 0, 0.4);
+    color: #ffffff;
+    text-decoration: none;
+    border: none;
+    z-index: 1;
+    display: none;
+}
+
+#controls div {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+}
+
+#controls div button {
+    background-color: rgba(0, 0, 0, 0);
+    color: #ffffff;
+    border: none;
+}
+
+#controls div button:hover {
+    color: #ff0000;
+}
+
 header {
     padding-top: 1rem;
 }
