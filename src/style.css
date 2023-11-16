@@ -22,7 +22,7 @@ canvas, .buttons-container, #controls {
     justify-content: center;
 }
 
-#overlay, header, .buttons-container, #controls div {
+#overlay, header, .buttons-container, #controls {
     display: flex;
     flex-direction: column;
 }
@@ -70,10 +70,12 @@ a, .toggers:hover, #controls div button:hover {
     text-decoration: none;
     border: none;
     z-index: 1;
-    display: none;
+    flex-wrap: wrap;
 }
 
 #controls div {
+    display: flex;
+    flex-direction: row;
     align-items: start;
 }
 
