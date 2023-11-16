@@ -1,6 +1,7 @@
 // main.js
 
 import * as glUtils from './gl-utils.js';
+import * as debug from './debug.js';
 import { mat4 } from 'gl-matrix';
 
 // Entry point
@@ -217,19 +218,6 @@ window.addEventListener('resize', function() {
 	gl.viewport(0, 0, canvas.width, canvas.height);
 });
 
-const toggleOverlayButton = document.getElementById('toggleOverlay');
-const controls = document.getElementById('controls');
-toggleOverlayButton.addEventListener('click', function() {
-	const overlay = document.getElementById('overlay');
-	if (overlay.style.display === 'none') {
-		overlay.style.display = 'block';
-		controls.style.display = 'none';
-	} else {
-		overlay.style.display = 'none';
-		controls.style.display = 'block';
-	}
-});
-
 // Pre-render setup
 let tick = 0;
 let tickRate = 0.001;
@@ -247,6 +235,40 @@ gl.uniform3fv(uniforms.u_viewPosition, eyePosition);
 gl.uniform3fv(uniforms.u_ambientLight, [0.1, 0.1, 0.1]);
 gl.uniform1f(uniforms.u_shininess, 32.0);
 gl.uniform3fv(uniforms.u_specularColor, [1.0, 1.0, 1.0]);
+
+// Toggle to display overlay
+const overlayButton = document.getElementById('toggleOverlay');
+const overlayElement = document.getElementById('overlay');
+debug.toggleDisplay(overlayElement, overlayButton);
+
+// Toggle to display controls
+const controlsElement = document.getElementById('controls');
+const controlsButton = document.getElementById('toggleControls');
+debug.toggleDisplay(controlsElement, controlsButton);
+
+// Special toggle for overlay/control buttons
+overlayButton.addEventListener('click', function() {
+	if (controlsButton.style.display === 'block') {
+		controlsButton.style.display = 'none';
+		overlayButton.textContent = ">>"
+	} else {
+		controlsButton.style.display = 'block';
+		overlayButton.textContent = "<<"
+	}
+});
+
+// Add control for tick rate
+debug.setControl(controlsElement, 'Tick rate', 'range', 
+	{
+		min: 0,
+		max: 0.01,
+		step: 0.0001,
+		init: tickRate,
+	}, 
+	function(value) {
+		tickRate = value
+	},
+);
 
 // Start the rendering loop
 window.dispatchEvent(new Event('resize')); // Set the initial canvas size
