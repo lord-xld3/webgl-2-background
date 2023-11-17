@@ -226,6 +226,7 @@ overlayButton.addEventListener('click', () => {
 		overlayElement.style.display = 'flex';
 		overlayButton.textContent = '>>';
 		controlsButton.style.display = 'none';
+		controlsElement.style.display = 'none';
 	}
 });
 
