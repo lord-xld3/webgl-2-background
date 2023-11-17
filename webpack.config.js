@@ -1,3 +1,4 @@
+const fs = require('fs');
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
@@ -9,12 +10,7 @@ module.exports = {
         main: [
             './src/main.js', 
             './src/style.css', 
-            './src/img/myself.jpg',
-            './src/img/spinny_cow.webp',
-            './src/img/mandelbrot.webp',
-            './src/img/boundary_tracing.webp',
-            './src/img/maf_cal.webp',
-            './src/img/portfolio_icon.webp',
+            ...fs.readdirSync('./src/img').map(file => `./src/img/${file}`),
         ],
     },
     output: {
