@@ -202,7 +202,7 @@ glUtils.setAttribPointer(gl,
 gl.vertexAttribDivisor(attribs.a_color, 1); // This attribute only changes for each 1 instance
 
 // Resize the canvas when the window is resized
-window.addEventListener('resize', function() {
+window.addEventListener('resize', () => {
 	canvas.width = window.innerWidth;
 	canvas.height = window.innerHeight;
 	gl.viewport(0, 0, canvas.width, canvas.height);
@@ -217,7 +217,7 @@ const controlsButton = document.getElementById('toggleControls');
 debug.toggleDisplay(controlsElement, controlsButton, 'flex');
 
 // Special toggle for overlay/control buttons
-overlayButton.addEventListener('click', function() {
+overlayButton.addEventListener('click', () => {
 	if (overlayElement.style.display === 'flex') {
 		overlayElement.style.display = 'none';
 		overlayButton.textContent = '<<';
@@ -230,27 +230,28 @@ overlayButton.addEventListener('click', function() {
 });
 
 // Setup uniforms and variables
-var tick = 0;
-var tickRate = 0.001;
-var maxTick = 2 * Math.PI;
-var ambientLight = [0.1, 0.1, 0.1],
+let tick = 0;
+let tickRate = 0.001;
+let maxTick = Math.PI * 2;
+let angle = tickRate * maxTick;
+let ambientLight = [0.1, 0.1, 0.1],
 lightPosition = [0, 0, 6],
 lightColor = [1, 1, 1],
 specular_power = 32,
 specularColor = [1, 1, 1];
 
 // View
-var eyePosition = [0, 0, 6];
-var targetPosition = [0, 0, 0];
-var viewMatrix = mat4.lookAt(mat4.create(), 
+let eyePosition = [0, 0, 6];
+let targetPosition = [0, 0, 0];
+let viewMatrix = mat4.lookAt(mat4.create(), 
 	eyePosition,
 	targetPosition, // Target position
 	[0, 1, 0] // Up vector
 );
 
 // Projection
-var fov = 50 * Math.PI / 180, aspect = canvas.width / canvas.height, near_plane = 0.1, far_plane = 10.0
-var projectionMatrix = mat4.perspective(mat4.create(), 
+let fov = 50 * Math.PI / 180, aspect = canvas.width / canvas.height, near_plane = 0.1, far_plane = 10.0
+let projectionMatrix = mat4.perspective(mat4.create(), 
 	fov,
 	aspect,
 	near_plane,
@@ -260,12 +261,12 @@ var projectionMatrix = mat4.perspective(mat4.create(),
 // Add debug controls
 debug.setControl(controlsElement, 'Tick rate', 'range', 
 	{ min: 0, max: 0.01, step: 0.0001, init: tickRate }, 
-	function(value) { tickRate = value }
+	(value) => { tickRate = value, angle = tickRate * maxTick; }
 );
 
 debug.setControl(controlsElement, 'View X', 'range',
 	{ min: -10, max: 10, step: 0.1, init: 0 },
-	function(value) {
+	(value) => {
 		eyePosition[0] = value;
 		gl.uniform3fv(uniforms.u_viewPosition, eyePosition);
 		viewMatrix = mat4.lookAt(mat4.create(),
@@ -279,7 +280,7 @@ debug.setControl(controlsElement, 'View X', 'range',
 
 debug.setControl(controlsElement, 'View Y', 'range',
 	{ min: -10, max: 10, step: 0.1, init: 0 },
-	function(value) {
+	(value) => {
 		eyePosition[1] = value;
 		gl.uniform3fv(uniforms.u_viewPosition, eyePosition);
 		viewMatrix = mat4.lookAt(mat4.create(),
@@ -293,7 +294,7 @@ debug.setControl(controlsElement, 'View Y', 'range',
 
 debug.setControl(controlsElement, 'View Z', 'range',
 	{ min: -10, max: 10, step: 0.1, init: 6 },
-	function(value) {
+	(value) => {
 		eyePosition[2] = value;
 		gl.uniform3fv(uniforms.u_viewPosition, eyePosition);
 		viewMatrix = mat4.lookAt(mat4.create(),
@@ -307,7 +308,7 @@ debug.setControl(controlsElement, 'View Z', 'range',
 
 debug.setControl(controlsElement, 'Target X', 'range',
 	{ min: -10, max: 10, step: 0.1, init: 0 },
-	function(value) {
+	(value) => {
 		targetPosition[0] = value;
 		viewMatrix = mat4.lookAt(mat4.create(),
 			eyePosition,
@@ -320,7 +321,7 @@ debug.setControl(controlsElement, 'Target X', 'range',
 
 debug.setControl(controlsElement, 'Target Y', 'range',
 	{ min: -10, max: 10, step: 0.1, init: 0 },
-	function(value) {
+	(value) => {
 		targetPosition[1] = value;
 		viewMatrix = mat4.lookAt(mat4.create(),
 			eyePosition,
@@ -333,7 +334,7 @@ debug.setControl(controlsElement, 'Target Y', 'range',
 
 debug.setControl(controlsElement, 'Target Z', 'range',
 	{ min: -10, max: 10, step: 0.1, init: 0 },
-	function(value) {
+	(value) => {
 		targetPosition[2] = value;
 		viewMatrix = mat4.lookAt(mat4.create(),
 			eyePosition,
@@ -346,7 +347,7 @@ debug.setControl(controlsElement, 'Target Z', 'range',
 
 debug.setControl(controlsElement, 'FOV', 'range',
 	{ min: 0, max: 180, step: 1, init: 50 },
-	function(value) {
+	(value) => {
 		fov = value * Math.PI / 180;
 		projectionMatrix = mat4.perspective(mat4.create(),
 			fov, aspect, near_plane, far_plane
@@ -357,7 +358,7 @@ debug.setControl(controlsElement, 'FOV', 'range',
 
 debug.setControl(controlsElement, 'Aspect', 'range',
 	{ min: 0, max: 10, step: 0.1, init: aspect },
-	function(value) {
+	(value) => {
 		aspect = value;
 		projectionMatrix = mat4.perspective(mat4.create(),
 			fov, aspect, near_plane, far_plane
@@ -368,7 +369,7 @@ debug.setControl(controlsElement, 'Aspect', 'range',
 
 debug.setControl(controlsElement, 'Near plane', 'range',
 	{ min: 0.1, max: 10.0, step: 0.1, init: 0.1 },
-	function(value) {
+	(value) => {
 		near_plane = value;
 		projectionMatrix = mat4.perspective(mat4.create(),
 			fov, aspect, near_plane, far_plane
@@ -379,7 +380,7 @@ debug.setControl(controlsElement, 'Near plane', 'range',
 
 debug.setControl(controlsElement, 'Far plane', 'range',
 	{ min: 0.2, max: 20.0, step: 0.1, init: 10.0 },
-	function(value) {
+	(value) => {
 		far_plane = value;
 		projectionMatrix = mat4.perspective(mat4.create(),
 			fov, aspect, near_plane, far_plane
@@ -390,7 +391,7 @@ debug.setControl(controlsElement, 'Far plane', 'range',
 
 debug.setControl(controlsElement, 'Light X', 'range',
 	{ min: -10, max: 10, step: 0.1, init: 0 },
-	function(value) {
+	(value) => {
 		lightPosition[0] = value;
 		gl.uniform3fv(uniforms.u_lightPosition, lightPosition);
 	},
@@ -398,7 +399,7 @@ debug.setControl(controlsElement, 'Light X', 'range',
 
 debug.setControl(controlsElement, 'Light Y', 'range',
 	{ min: -10, max: 10, step: 0.1, init: 0 },
-	function(value) {
+	(value) => {
 		lightPosition[1] = value;
 		gl.uniform3fv(uniforms.u_lightPosition, lightPosition);
 	},
@@ -406,7 +407,7 @@ debug.setControl(controlsElement, 'Light Y', 'range',
 
 debug.setControl(controlsElement, 'Light Z', 'range',
 	{ min: -10, max: 10, step: 0.1, init: 6 },
-	function(value) {
+	(value) => {
 		lightPosition[2] = value;
 		gl.uniform3fv(uniforms.u_lightPosition, lightPosition);
 	},
@@ -414,7 +415,7 @@ debug.setControl(controlsElement, 'Light Z', 'range',
 
 debug.setControl(controlsElement, 'Light R', 'range',
 	{ min: 0, max: 1, step: 0.01, init: 1 },
-	function(value) {
+	(value) => {
 		lightColor[0] = value;
 		gl.uniform3fv(uniforms.u_lightColor, lightColor);
 	},
@@ -422,7 +423,7 @@ debug.setControl(controlsElement, 'Light R', 'range',
 
 debug.setControl(controlsElement, 'Light G', 'range',
 	{ min: 0, max: 1, step: 0.01, init: 1 },
-	function(value) {
+	(value) => {
 		lightColor[1] = value;
 		gl.uniform3fv(uniforms.u_lightColor, lightColor);
 	},
@@ -430,7 +431,7 @@ debug.setControl(controlsElement, 'Light G', 'range',
 
 debug.setControl(controlsElement, 'Light B', 'range',
 	{ min: 0, max: 1, step: 0.01, init: 1 },
-	function(value) {
+	(value) => {
 		lightColor[2] = value;
 		gl.uniform3fv(uniforms.u_lightColor, lightColor);
 	},
@@ -438,7 +439,7 @@ debug.setControl(controlsElement, 'Light B', 'range',
 
 debug.setControl(controlsElement, 'Ambient R', 'range',
 	{ min: 0, max: 1, step: 0.01, init: 0.1 },
-	function(value) {
+	(value) => {
 		ambientLight[0] = value;
 		gl.uniform3fv(uniforms.u_ambientLight, ambientLight);
 	},
@@ -446,7 +447,7 @@ debug.setControl(controlsElement, 'Ambient R', 'range',
 
 debug.setControl(controlsElement, 'Ambient G', 'range',
 	{ min: 0, max: 1, step: 0.01, init: 0.1 },
-	function(value) {
+	(value) => {
 		ambientLight[1] = value;
 		gl.uniform3fv(uniforms.u_ambientLight, ambientLight);
 	},
@@ -454,15 +455,15 @@ debug.setControl(controlsElement, 'Ambient G', 'range',
 
 debug.setControl(controlsElement, 'Ambient B', 'range',
 	{ min: 0, max: 1, step: 0.01, init: 0.1 },
-	function(value) {
+	(value) => {
 		ambientLight[2] = value;
 		gl.uniform3fv(uniforms.u_ambientLight, ambientLight);
 	},
 );
 
 debug.setControl(controlsElement, 'Specular power', 'range',
-	{ min: 0, max: 128, step: 1, init: 32 },
-	function(value) {
+	{ min: 0, max: 64, step: 0.5, init: 32 },
+	(value) => {
 		specular_power = value;
 		gl.uniform1f(uniforms.u_specular_power, specular_power);
 	},
@@ -470,7 +471,7 @@ debug.setControl(controlsElement, 'Specular power', 'range',
 
 debug.setControl(controlsElement, 'Specular R', 'range',
 	{ min: 0, max: 1, step: 0.01, init: 1 },
-	function(value) {
+	(value) => {
 		specularColor[0] = value;
 		gl.uniform3fv(uniforms.u_specularColor, specularColor);
 	},
@@ -478,7 +479,7 @@ debug.setControl(controlsElement, 'Specular R', 'range',
 
 debug.setControl(controlsElement, 'Specular G', 'range',
 	{ min: 0, max: 1, step: 0.01, init: 1 },
-	function(value) {
+	(value) => {
 		specularColor[1] = value;
 		gl.uniform3fv(uniforms.u_specularColor, specularColor);
 	},
@@ -486,7 +487,7 @@ debug.setControl(controlsElement, 'Specular G', 'range',
 
 debug.setControl(controlsElement, 'Specular B', 'range',
 	{ min: 0, max: 1, step: 0.01, init: 1 },
-	function(value) {
+	(value) => {
 		specularColor[2] = value;
 		gl.uniform3fv(uniforms.u_specularColor, specularColor);
 	},
@@ -494,7 +495,7 @@ debug.setControl(controlsElement, 'Specular B', 'range',
 
 debug.setControl(controlsElement, 'Depth Test', 'checkbox',
 	{ init: true },
-	function(value) {
+	(value) => {
 		if (value) {
 			gl.enable(gl.DEPTH_TEST);
 		} else {
@@ -505,7 +506,7 @@ debug.setControl(controlsElement, 'Depth Test', 'checkbox',
 
 debug.setControl(controlsElement, 'Cull Face', 'checkbox',
 	{ init: true },
-	function(value) {
+	(value) => {
 		if (value) {
 			gl.enable(gl.CULL_FACE);
 		} else {
@@ -516,7 +517,7 @@ debug.setControl(controlsElement, 'Cull Face', 'checkbox',
 
 debug.setControl(controlsElement, 'Cull CW', 'checkbox',
 	{ init: true },
-	function(value) {
+	(value) => {
 		if (value) {
 			gl.frontFace(gl.CW);
 		} else {
@@ -542,6 +543,19 @@ gl.uniform1f(uniforms.u_specular_power, specular_power);
 gl.uniform3fv(uniforms.u_specularColor, specularColor);
 gl.uniformMatrix4fv(uniforms.u_projection, false, projectionMatrix);
 
+// Translate the matrices
+for (let i = 0; i < 3; i++) {
+    // Top row
+    mat4.identity(matrices[i]);
+    mat4.translate(matrices[i], matrices[i], [-4 + 4 * i, 1.5, 0]);
+}
+
+for (let i = 3; i < 6; i++) {
+    // Bottom row
+    mat4.identity(matrices[i]);
+    mat4.translate(matrices[i], matrices[i], [-4 + 4 * (i % 3), -1.5, 0]);
+}
+
 // Start the rendering loop
 window.dispatchEvent(new Event('resize')); // Set the initial canvas size
 render();
@@ -558,20 +572,16 @@ function render() {
 	// Update the matrices
 	for (let i=0; i < 3; i++) {
 		// Top row
-		mat4.identity(matrices[i]);
-		mat4.translate(matrices[i], matrices[i], [-4 + 4 * i, 1.5, 0]);
 		mat4.rotate(matrices[i], matrices[i], 
-			Math.sin(tick * (i + 1)) * Math.PI * 2, // angle
+			Math.sin(i + tick) * angle, // angle
 			[1, -0.5, -1] // axis
 		);
 	}
 
 	for (let i=3; i < 6; i++) {
 		// Bottom row
-		mat4.identity(matrices[i]);
-		mat4.translate(matrices[i], matrices[i], [-4 + 4 * (i % 3), -1.5, 0]);
 		mat4.rotate(matrices[i], matrices[i], 
-			Math.sin(tick * (i)) * Math.PI * -2, // angle
+			Math.sin(i - tick) * angle, // angle
 			[1, -0.5, -1] // axis
 		);
 	}
