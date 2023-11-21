@@ -1,6 +1,32 @@
-html {
+:root {
     background-color: rgb(32, 32, 32);
+    --scroll-bar-color: rgba(128, 16, 16, 0.5);
+    --scroll-bar-color-hover: rgba(192, 16, 16, 0.5);
+    --scroll-bar-color-active: rgba(256, 16, 16, 0.5);
     font-size: large;
+    scrollbar-color: var(--scroll-bar-color) transparent;
+}
+
+::-webkit-scrollbar {
+    position: absolute;
+    left: 0;
+    width: 0.75rem;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--scroll-bar-color);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scroll-bar-color-hover);
+}
+
+::-webkit-scrollbar-thumb:active {
+    background-color: var(--scroll-bar-color-active);
+}
+
+::-webkit-scrollbar-track {
+    display: none;
 }
 
 body {
@@ -57,7 +83,6 @@ a, .toggers:hover, #controls div button:hover {
 
 #controls h3 {
     margin: 0.25rem 0;
-    font-size: large;
 }
 
 #controls {
@@ -150,10 +175,6 @@ footer {
 
 section, footer {
     width: 90%;
-}
-
-section a {
-    font-size: large; /* We really shouldn't need to specify this as it *should* inherit from root html element*/
 }
 
 section ul{
