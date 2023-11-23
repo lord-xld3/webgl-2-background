@@ -55,19 +55,3 @@ export function setControl(parent, controlName, controlType, attributes, callbac
 
     return container;
 }
-
-
-/** Use a button to toggle display of an element
- * @param {HTMLElement} element element to toggle display of
- * @param {HTMLElement} button button to toggle display with
- * @param {String} display display style to use when element is visible
- */
-export function toggleDisplay(element, button, display) {
-    button.addEventListener('click', function() {
-        if (element.style.display === 'none') {
-            element.style.display = display;
-        } else {
-            element.style.display = 'none';
-        }
-    })
-}

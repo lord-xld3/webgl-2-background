@@ -1,0 +1,25 @@
+{
+    "shader": "vert",
+    "uniforms": [
+        {
+            "name": "u_view",
+            "type": "float",
+            "elements": 16
+        },
+        {
+            "name": "u_projection",
+            "type": "float",
+            "elements": 16
+        },
+        {
+            "name": "u_lightPosition",
+            "type": "float",
+            "elements": 3
+        },
+        {
+            "name": "u_viewPosition",
+            "type": "float",
+            "elements": 3
+        }
+    ]
+}

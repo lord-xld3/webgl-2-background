@@ -1,0 +1,25 @@
+{
+    "shader": "phong",
+    "uniforms": [
+        {
+            "name": "u_lightColor",
+            "type": "float",
+            "elements": 3
+        },
+        {
+            "name": "u_ambientLight",
+            "type": "float",
+            "elements": 3
+        },
+        {
+            "name": "u_specular_power",
+            "type": "float",
+            "elements": 1
+        },
+        {
+            "name": "u_specularColor",
+            "type": "float",
+            "elements": 3
+        }
+    ]
+}

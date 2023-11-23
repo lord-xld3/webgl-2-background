@@ -19,6 +19,7 @@ module.exports = {
             './src/style.css', 
             ...dirCrawler('./src/img'),
             ...dirCrawler('./src/shaders'),
+            ...dirCrawler('./src/json'),
         ],
     },
     output: {
