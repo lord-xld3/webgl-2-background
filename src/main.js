@@ -11,69 +11,21 @@ if (!gl) {
 	throw new Error('WebGL2 not supported');
 }
 
-const vertexShaderSource = `#version 300 es
-	in vec4 a_position;
-	in vec3 a_color;
-	in mat4 a_modelMatrix;
-	
-	uniform mat4 u_view;
-	uniform mat4 u_projection;
-	uniform vec3 u_lightPosition;
-	uniform vec3 u_viewPosition;
-
-	out vec3 v_normal;
-	out vec3 v_color;
-	out vec3 v_surfaceToLight;
-	out vec3 v_surfaceToView;
-
-	void main() {
-		vec4 worldPosition = a_modelMatrix * a_position;
-		gl_Position = u_projection * u_view * worldPosition;
-		v_normal = mat3(a_modelMatrix) * a_position.xyz;
-		v_color = a_color;
-		v_surfaceToLight = u_lightPosition - worldPosition.xyz;
-		v_surfaceToView = u_viewPosition - worldPosition.xyz;
+async function loadText(url) {
+	try {
+		const response = await fetch(url);
+		if (!response.ok) {
+			throw new Error(`${response.status}, failed to fetch: ${url} `);
+		}
+		return response.text();
+	} catch (error) {
+		console.error(error);
 	}
-`;
 
-const fragmentShaderSource = `#version 300 es
-	precision highp float;
-	
-	in vec3 v_normal;
-	in vec3 v_color;
-	in vec3 v_surfaceToLight;
-	in vec3 v_surfaceToView;
-	
-	uniform vec3 u_lightColor;
-	uniform vec3 u_ambientLight;
-	uniform float u_specular_power;
-	uniform vec3 u_specularColor;
+}
 
-	out vec4 outColor;
-
-	void main() {
-		vec3 normal = normalize(v_normal);
-		vec3 surfaceToLightDirection = normalize(v_surfaceToLight);
-		vec3 lightIntensity = 
-			
-			// Diffuse lighting
-			u_lightColor * v_color * max(dot(normal, surfaceToLightDirection), 0.0) 
-			
-			// Specular lighting
-			+ u_specularColor * pow(
-				max(
-					dot(
-						reflect(-surfaceToLightDirection, normal),
-						normalize(v_surfaceToView)
-					),
-					0.0
-				),
-				u_specular_power
-			);
-
-		outColor = vec4(lightIntensity + u_ambientLight * v_color, 1.0);
-	}
-`;
+const vertexShaderSource = await loadText('shaders/vert.glsl');
+const fragmentShaderSource = await loadText('shaders/phong.glsl');
 
 // Create a shader program from vertex and fragment shader sources
 const shaderProgram = glUtils.makeProgram(gl, vertexShaderSource, fragmentShaderSource);
@@ -201,35 +153,6 @@ glUtils.setAttribPointer(gl,
 );
 gl.vertexAttribDivisor(attribs.a_color, 1); // This attribute only changes for each 1 instance
 
-// Resize the canvas when the window is resized
-window.addEventListener('resize', () => {
-	canvas.width = window.innerWidth;
-	canvas.height = window.innerHeight;
-	gl.viewport(0, 0, canvas.width, canvas.height);
-});
-
-const overlayButton = document.getElementById('toggleOverlay');
-const overlayElement = document.getElementById('overlay');
-
-// Toggle to display controls
-const controlsElement = document.getElementById('controls');
-const controlsButton = document.getElementById('toggleControls');
-debug.toggleDisplay(controlsElement, controlsButton, 'flex');
-
-// Special toggle for overlay/control buttons
-overlayButton.addEventListener('click', () => {
-	if (overlayElement.style.display === 'flex') {
-		overlayElement.style.display = 'none';
-		overlayButton.textContent = '<<';
-		controlsButton.style.display = 'block';
-	} else {
-		overlayElement.style.display = 'flex';
-		overlayButton.textContent = '>>';
-		controlsButton.style.display = 'none';
-		controlsElement.style.display = 'none';
-	}
-});
-
 // Setup uniforms and variables
 let tick = 0;
 let tickRate = 0.001;
@@ -259,239 +182,65 @@ let projectionMatrix = mat4.perspective(mat4.create(),
 	far_plane
 );
 
+// Pre-render
+gl.useProgram(shaderProgram);
+gl.enable(gl.DEPTH_TEST);
+gl.enable(gl.CULL_FACE);
+gl.frontFace(gl.CW);
+
+// Initialize uniforms
+gl.uniformMatrix4fv(uniforms.u_view, false, viewMatrix);
+gl.uniform3fv(uniforms.u_lightPosition, lightPosition);
+gl.uniform3fv(uniforms.u_lightColor, lightColor);
+gl.uniform3fv(uniforms.u_viewPosition, eyePosition);
+gl.uniform3fv(uniforms.u_ambientLight, ambientLight);
+gl.uniform1f(uniforms.u_specular_power, specular_power);
+gl.uniform3fv(uniforms.u_specularColor, specularColor);
+gl.uniformMatrix4fv(uniforms.u_projection, false, projectionMatrix);
+
+// Resize the canvas when the window is resized
+window.addEventListener('resize', () => {
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
+	gl.viewport(0, 0, canvas.width, canvas.height);
+});
+
+function toggleDisplay(element, button, display) {
+    button.addEventListener('click', function() {
+        if (element.style.display === 'none') {
+            element.style.display = display;
+        } else {
+            element.style.display = 'none';
+        }
+    })
+}
+
+const overlayButton = document.getElementById('toggleOverlay');
+const overlayElement = document.getElementById('overlay');
+
+// Toggle to display controls
+const controlsElement = document.getElementById('controls');
+const controlsButton = document.getElementById('toggleControls');
+toggleDisplay(controlsElement, controlsButton, 'flex');
+
+// Special toggle for overlay/control buttons
+overlayButton.addEventListener('click', () => {
+	if (overlayElement.style.display === 'flex') {
+		overlayElement.style.display = 'none';
+		overlayButton.textContent = '<<';
+		controlsButton.style.display = 'block';
+	} else {
+		overlayElement.style.display = 'flex';
+		overlayButton.textContent = '>>';
+		controlsButton.style.display = 'none';
+		controlsElement.style.display = 'none';
+	}
+});
+
 // Add debug controls
 debug.setControl(controlsElement, 'Tick rate', 'range', 
 	{ min: 0, max: 0.01, step: 0.0001, init: tickRate }, 
 	(value) => { tickRate = value, angle = tickRate * maxTick; }
-);
-
-debug.setControl(controlsElement, 'View X', 'range',
-	{ min: -10, max: 10, step: 0.1, init: 0 },
-	(value) => {
-		eyePosition[0] = value;
-		gl.uniform3fv(uniforms.u_viewPosition, eyePosition);
-		viewMatrix = mat4.lookAt(mat4.create(),
-			eyePosition,
-			targetPosition,
-			[0, 1, 0]
-		);
-		gl.uniformMatrix4fv(uniforms.u_view, false, viewMatrix);
-	}
-);
-
-debug.setControl(controlsElement, 'View Y', 'range',
-	{ min: -10, max: 10, step: 0.1, init: 0 },
-	(value) => {
-		eyePosition[1] = value;
-		gl.uniform3fv(uniforms.u_viewPosition, eyePosition);
-		viewMatrix = mat4.lookAt(mat4.create(),
-			eyePosition,
-			targetPosition,
-			[0, 1, 0]
-		);
-		gl.uniformMatrix4fv(uniforms.u_view, false, viewMatrix);
-	}
-);
-
-debug.setControl(controlsElement, 'View Z', 'range',
-	{ min: -10, max: 10, step: 0.1, init: 6 },
-	(value) => {
-		eyePosition[2] = value;
-		gl.uniform3fv(uniforms.u_viewPosition, eyePosition);
-		viewMatrix = mat4.lookAt(mat4.create(),
-			eyePosition,
-			targetPosition,
-			[0, 1, 0]
-		);
-		gl.uniformMatrix4fv(uniforms.u_view, false, viewMatrix);
-	}
-);
-
-debug.setControl(controlsElement, 'Target X', 'range',
-	{ min: -10, max: 10, step: 0.1, init: 0 },
-	(value) => {
-		targetPosition[0] = value;
-		viewMatrix = mat4.lookAt(mat4.create(),
-			eyePosition,
-			targetPosition,
-			[0, 1, 0]
-		);
-		gl.uniformMatrix4fv(uniforms.u_view, false, viewMatrix);
-	}
-);
-
-debug.setControl(controlsElement, 'Target Y', 'range',
-	{ min: -10, max: 10, step: 0.1, init: 0 },
-	(value) => {
-		targetPosition[1] = value;
-		viewMatrix = mat4.lookAt(mat4.create(),
-			eyePosition,
-			targetPosition,
-			[0, 1, 0]
-		);
-		gl.uniformMatrix4fv(uniforms.u_view, false, viewMatrix);
-	}
-);
-
-debug.setControl(controlsElement, 'Target Z', 'range',
-	{ min: -10, max: 10, step: 0.1, init: 0 },
-	(value) => {
-		targetPosition[2] = value;
-		viewMatrix = mat4.lookAt(mat4.create(),
-			eyePosition,
-			targetPosition,
-			[0, 1, 0]
-		);
-		gl.uniformMatrix4fv(uniforms.u_view, false, viewMatrix);
-	}
-);
-
-debug.setControl(controlsElement, 'FOV', 'range',
-	{ min: 0, max: 180, step: 1, init: 50 },
-	(value) => {
-		fov = value * Math.PI / 180;
-		projectionMatrix = mat4.perspective(mat4.create(),
-			fov, aspect, near_plane, far_plane
-		);
-		gl.uniformMatrix4fv(uniforms.u_projection, false, projectionMatrix);
-	}
-);
-
-debug.setControl(controlsElement, 'Aspect', 'range',
-	{ min: 0, max: 10, step: 0.1, init: aspect },
-	(value) => {
-		aspect = value;
-		projectionMatrix = mat4.perspective(mat4.create(),
-			fov, aspect, near_plane, far_plane
-		);
-		gl.uniformMatrix4fv(uniforms.u_projection, false, projectionMatrix);
-	},
-);
-
-debug.setControl(controlsElement, 'Near plane', 'range',
-	{ min: 0.1, max: 10.0, step: 0.1, init: 0.1 },
-	(value) => {
-		near_plane = value;
-		projectionMatrix = mat4.perspective(mat4.create(),
-			fov, aspect, near_plane, far_plane
-		);
-		gl.uniformMatrix4fv(uniforms.u_projection, false, projectionMatrix);
-	},
-);
-
-debug.setControl(controlsElement, 'Far plane', 'range',
-	{ min: 0.2, max: 20.0, step: 0.1, init: 10.0 },
-	(value) => {
-		far_plane = value;
-		projectionMatrix = mat4.perspective(mat4.create(),
-			fov, aspect, near_plane, far_plane
-		);
-		gl.uniformMatrix4fv(uniforms.u_projection, false, projectionMatrix);
-	},
-);
-
-debug.setControl(controlsElement, 'Light X', 'range',
-	{ min: -10, max: 10, step: 0.1, init: 0 },
-	(value) => {
-		lightPosition[0] = value;
-		gl.uniform3fv(uniforms.u_lightPosition, lightPosition);
-	},
-);
-
-debug.setControl(controlsElement, 'Light Y', 'range',
-	{ min: -10, max: 10, step: 0.1, init: 0 },
-	(value) => {
-		lightPosition[1] = value;
-		gl.uniform3fv(uniforms.u_lightPosition, lightPosition);
-	},
-);
-
-debug.setControl(controlsElement, 'Light Z', 'range',
-	{ min: -10, max: 10, step: 0.1, init: 6 },
-	(value) => {
-		lightPosition[2] = value;
-		gl.uniform3fv(uniforms.u_lightPosition, lightPosition);
-	},
-);
-
-debug.setControl(controlsElement, 'Light R', 'range',
-	{ min: 0, max: 1, step: 0.01, init: 1 },
-	(value) => {
-		lightColor[0] = value;
-		gl.uniform3fv(uniforms.u_lightColor, lightColor);
-	},
-);
-
-debug.setControl(controlsElement, 'Light G', 'range',
-	{ min: 0, max: 1, step: 0.01, init: 1 },
-	(value) => {
-		lightColor[1] = value;
-		gl.uniform3fv(uniforms.u_lightColor, lightColor);
-	},
-);
-
-debug.setControl(controlsElement, 'Light B', 'range',
-	{ min: 0, max: 1, step: 0.01, init: 1 },
-	(value) => {
-		lightColor[2] = value;
-		gl.uniform3fv(uniforms.u_lightColor, lightColor);
-	},
-);
-
-debug.setControl(controlsElement, 'Ambient R', 'range',
-	{ min: 0, max: 1, step: 0.01, init: 0.1 },
-	(value) => {
-		ambientLight[0] = value;
-		gl.uniform3fv(uniforms.u_ambientLight, ambientLight);
-	},
-);
-
-debug.setControl(controlsElement, 'Ambient G', 'range',
-	{ min: 0, max: 1, step: 0.01, init: 0.1 },
-	(value) => {
-		ambientLight[1] = value;
-		gl.uniform3fv(uniforms.u_ambientLight, ambientLight);
-	},
-);
-
-debug.setControl(controlsElement, 'Ambient B', 'range',
-	{ min: 0, max: 1, step: 0.01, init: 0.1 },
-	(value) => {
-		ambientLight[2] = value;
-		gl.uniform3fv(uniforms.u_ambientLight, ambientLight);
-	},
-);
-
-debug.setControl(controlsElement, 'Specular power', 'range',
-	{ min: 0, max: 64, step: 0.5, init: 32 },
-	(value) => {
-		specular_power = value;
-		gl.uniform1f(uniforms.u_specular_power, specular_power);
-	},
-);
-
-debug.setControl(controlsElement, 'Specular R', 'range',
-	{ min: 0, max: 1, step: 0.01, init: 1 },
-	(value) => {
-		specularColor[0] = value;
-		gl.uniform3fv(uniforms.u_specularColor, specularColor);
-	},
-);
-
-debug.setControl(controlsElement, 'Specular G', 'range',
-	{ min: 0, max: 1, step: 0.01, init: 1 },
-	(value) => {
-		specularColor[1] = value;
-		gl.uniform3fv(uniforms.u_specularColor, specularColor);
-	},
-);
-
-debug.setControl(controlsElement, 'Specular B', 'range',
-	{ min: 0, max: 1, step: 0.01, init: 1 },
-	(value) => {
-		specularColor[2] = value;
-		gl.uniform3fv(uniforms.u_specularColor, specularColor);
-	},
 );
 
 debug.setControl(controlsElement, 'Depth Test', 'checkbox',
@@ -527,34 +276,14 @@ debug.setControl(controlsElement, 'Cull CW', 'checkbox',
 	},
 );
 
-
-// Pre-render
-gl.useProgram(shaderProgram);
-gl.enable(gl.DEPTH_TEST);
-gl.enable(gl.CULL_FACE);
-gl.frontFace(gl.CW);
-
-// Initialize uniforms
-gl.uniformMatrix4fv(uniforms.u_view, false, viewMatrix);
-gl.uniform3fv(uniforms.u_lightPosition, lightPosition);
-gl.uniform3fv(uniforms.u_lightColor, lightColor);
-gl.uniform3fv(uniforms.u_viewPosition, eyePosition);
-gl.uniform3fv(uniforms.u_ambientLight, ambientLight);
-gl.uniform1f(uniforms.u_specular_power, specular_power);
-gl.uniform3fv(uniforms.u_specularColor, specularColor);
-gl.uniformMatrix4fv(uniforms.u_projection, false, projectionMatrix);
-
-// Translate the matrices
-for (let i = 0; i < 3; i++) {
-    // Top row
+// Translate the cubes
+for (let i = 0; i < 6; i++) {
     mat4.identity(matrices[i]);
-    mat4.translate(matrices[i], matrices[i], [-4 + 4 * i, 1.5, 0]);
-}
-
-for (let i = 3; i < 6; i++) {
-    // Bottom row
-    mat4.identity(matrices[i]);
-    mat4.translate(matrices[i], matrices[i], [-4 + 4 * (i % 3), -1.5, 0]);
+    mat4.translate(matrices[i], matrices[i], [
+		-4 + 4 * (i % 3), // X
+		((i + 1 & 4) - 2) * -0.75, // Y
+		0 // Z
+	]);
 }
 
 // Start the rendering loop

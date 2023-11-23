@@ -5,12 +5,20 @@ const TerserPlugin = require('terser-webpack-plugin');
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 
+// Crawls for files one level deep (due to output reasons)
+function dirCrawler(dir) {
+    return fs.readdirSync(dir).map((file) => {
+        return `${dir}/${file}`
+    });
+}
+
 module.exports = {
     entry: {
         main: [
             './src/main.js', 
             './src/style.css', 
-            ...fs.readdirSync('./src/img').map(file => `./src/img/${file}`),
+            ...dirCrawler('./src/img'),
+            ...dirCrawler('./src/shaders'),
         ],
     },
     output: {
@@ -32,6 +40,15 @@ module.exports = {
                     },
                 },
             },
+            {
+                test: /\.(glsl|vs|fs|vert|frag)$/,
+                use: {
+                    loader: 'file-loader',
+                    options: {
+                        name: 'shaders/[name].[ext]', // Output path for shaders
+                    },
+                },
+            }
         ],
     },
     plugins: [
@@ -51,6 +68,7 @@ module.exports = {
         }),
     ],
     optimization: {
+        minimize: true,
         minimizer: [
             new TerserPlugin(),
             new CssMinimizerPlugin(),
