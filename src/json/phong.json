@@ -3,23 +3,39 @@
     "uniforms": [
         {
             "name": "u_lightColor",
-            "type": "float",
-            "elements": 3
+            "function": "uniform3fv",
+            "elements": 3,
+            "min": 0,
+            "max": 1,
+            "step": 0.1,
+            "init": 0.5
         },
         {
             "name": "u_ambientLight",
-            "type": "float",
-            "elements": 3
+            "function": "uniform3fv",
+            "elements": 3,
+            "min": 0,
+            "max": 1,
+            "step": 0.1,
+            "init": 0.5
         },
         {
             "name": "u_specular_power",
-            "type": "float",
-            "elements": 1
+            "function": "uniform1f",
+            "elements": 1,
+            "min": 0,
+            "max": 1,
+            "step": 0.1,
+            "init": 0.5
         },
         {
             "name": "u_specularColor",
-            "type": "float",
-            "elements": 3
+            "function": "uniform3fv",
+            "elements": 3,
+            "min": 0,
+            "max": 1,
+            "step": 0.1,
+            "init": 0.5
         }
     ]
 }
