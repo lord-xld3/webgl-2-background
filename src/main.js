@@ -115,10 +115,11 @@ image.onload = function() {
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 	gl.generateMipmap(gl.TEXTURE_2D);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 }
 
 gl.enable(gl.DEPTH_TEST);
+gl.cullFace(gl.BACK);
 gl.useProgram(shaderProgram);
 
 // ModelView
@@ -128,8 +129,16 @@ gl.uniformMatrix4fv(uniforms.u_modelViewMatrix, false, modelViewMatrix);
 
 // Projection
 const projectionMatrix = mat4.create();
-mat4.perspective(projectionMatrix, Math.PI / 4, canvas.width / canvas.height, 0.1, 100);
+mat4.perspective(projectionMatrix, Math.PI / 4, gl.canvas.width / gl.canvas.height, 0.1, 100);
 gl.uniformMatrix4fv(uniforms.u_projectionMatrix, false, projectionMatrix);
+
+window.addEventListener('resize', function () {
+	gl.canvas.width = window.innerWidth;
+	gl.canvas.height = window.innerHeight;
+	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+	mat4.perspective(projectionMatrix, Math.PI / 4, gl.canvas.width / gl.canvas.height, 0.1, 100);
+	gl.uniformMatrix4fv(uniforms.u_projectionMatrix, false, projectionMatrix);
+})
 
 function render() {
 	gl.clearColor(0, 0, 0, 1);
@@ -140,4 +149,5 @@ function render() {
 	requestAnimationFrame(render);
 }
 
+window.dispatchEvent(new Event('resize'));
 render();
