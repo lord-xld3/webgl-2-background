@@ -67,6 +67,46 @@ glUtils.makeBuffer(gl,
 		-1,-1, 1, 1, 0, 0, 0, 1,
 		 1, 1, 1, 0, 0, 1, 1, 0,
 		-1, 1, 1, 1, 1, 0, 0, 0,
+
+		// Back face
+		-1,-1,-1, 1, 0, 0, 0, 1,
+		 1,-1,-1, 0, 1, 0, 0, 0,
+		 1, 1,-1, 0, 0, 1, 1, 0,
+		-1,-1,-1, 1, 0, 0, 0, 1,
+		 1, 1,-1, 0, 0, 1, 1, 0,
+		-1, 1,-1, 1, 1, 0, 1, 1,
+
+		// Top face
+		-1, 1,-1, 1, 0, 0, 0, 1,
+		 1, 1,-1, 0, 1, 0, 0, 0,
+		 1, 1, 1, 0, 0, 1, 1, 0,
+		-1, 1,-1, 1, 0, 0, 0, 1,
+		 1, 1, 1, 0, 0, 1, 1, 0,
+		-1, 1, 1, 1, 1, 0, 1, 1,
+
+		// Bottom face
+		-1,-1,-1, 1, 0, 0, 0, 1,
+		 1,-1,-1, 0, 1, 0, 1, 1,
+		 1,-1, 1, 0, 0, 1, 1, 0,
+		-1,-1,-1, 1, 0, 0, 0, 1,
+		 1,-1, 1, 0, 0, 1, 1, 0,
+		-1,-1, 1, 1, 1, 0, 0, 0,
+
+		// Right face
+		 1,-1,-1, 1, 0, 0, 0, 1,
+		 1, 1,-1, 0, 1, 0, 1, 1,
+		 1, 1, 1, 0, 0, 1, 1, 0,
+		 1,-1,-1, 1, 0, 0, 0, 1,
+		 1, 1, 1, 0, 0, 1, 1, 0,
+		 1,-1, 1, 1, 1, 0, 0, 0,
+
+		// Left face
+		-1,-1,-1, 1, 0, 0, 0, 1,
+		-1, 1,-1, 0, 1, 0, 0, 0,
+		-1, 1, 1, 0, 0, 1, 1, 0,
+		-1,-1,-1, 1, 0, 0, 0, 1,
+		-1, 1, 1, 0, 0, 1, 1, 0,
+		-1,-1, 1, 1, 1, 0, 1, 1,
 	]),
 	gl.ARRAY_BUFFER,
 	gl.STATIC_DRAW
@@ -109,7 +149,7 @@ const texture = gl.createTexture();
 gl.bindTexture(gl.TEXTURE_2D, texture);
 
 var image = new Image();
-image.src = 'img/f.png'
+image.src = 'img/myself.jpg'
 image.onload = function() {
 	gl.bindTexture(gl.TEXTURE_2D, texture);
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
@@ -124,13 +164,12 @@ gl.useProgram(shaderProgram);
 
 // ModelView
 const modelViewMatrix = mat4.create();
-mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, -3]);
-gl.uniformMatrix4fv(uniforms.u_modelViewMatrix, false, modelViewMatrix);
+mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, -6]);
+mat4.rotate(modelViewMatrix, modelViewMatrix, Math.PI / 4, [1, 1, 1]);
 
 // Projection
 const projectionMatrix = mat4.create();
 mat4.perspective(projectionMatrix, Math.PI / 4, gl.canvas.width / gl.canvas.height, 0.1, 100);
-gl.uniformMatrix4fv(uniforms.u_projectionMatrix, false, projectionMatrix);
 
 window.addEventListener('resize', function () {
 	gl.canvas.width = window.innerWidth;
@@ -140,11 +179,19 @@ window.addEventListener('resize', function () {
 	gl.uniformMatrix4fv(uniforms.u_projectionMatrix, false, projectionMatrix);
 })
 
+gl.uniformMatrix4fv(uniforms.u_modelViewMatrix, false, modelViewMatrix);
+gl.uniformMatrix4fv(uniforms.u_projectionMatrix, false, projectionMatrix);
+
+let tickspeed = 0.01;
+
 function render() {
 	gl.clearColor(0, 0, 0, 1);
 	gl.clear(gl.COLOR_BUFFER_BIT);
 
 	gl.useProgram(shaderProgram);
+
+	mat4.rotate(modelViewMatrix, modelViewMatrix, tickspeed, [0.5,1,1.5]);
+	gl.uniformMatrix4fv(uniforms.u_modelViewMatrix, false, modelViewMatrix);
 	gl.drawArrays(gl.TRIANGLES, 0, 36);
 	requestAnimationFrame(render);
 }
