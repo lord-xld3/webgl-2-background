@@ -103,3 +103,58 @@ export function setAttribPointer(gl, attrib, pointer) {
         pointer.offset
     );
 }
+
+/** Create and bind textures to texture units
+ * @param {WebGLRenderingContext} gl gl context
+ * @param {Array<Object>} textures array of texture objects
+ * @param {Image} textures[].image image data
+ * @param {Object} textures[].format texture format
+ * @param {Number} textures[].format.texFormat texture format (gl.RGBA, gl.RGB, etc.)
+ * @param {Number} textures[].format.srcFormat source format (gl.RGBA, gl.RGB, etc.)
+ * @param {Number} textures[].format.srcType source type (gl.UNSIGNED_BYTE, gl.FLOAT, etc.)
+ * @param {Object} textures[].options texture options
+ * @param {Number} textures[].options.TEXTURE_WRAP_S texture wrap s (gl.REPEAT, gl.CLAMP_TO_EDGE, etc.)
+ * @param {Number} textures[].options.TEXTURE_WRAP_T texture wrap t (gl.REPEAT, gl.CLAMP_TO_EDGE, etc.)
+ * @param {Number} textures[].options.TEXTURE_MIN_FILTER texture min filter (gl.NEAREST, gl.LINEAR, etc.)
+ * @param {Number} textures[].options.TEXTURE_MAG_FILTER texture mag filter (gl.NEAREST, gl.LINEAR, etc.)
+ * @returns {void} nothing
+ */
+export function makeTextures(gl, textures) {
+    function newTexture(iter, image, 
+        fmt = {
+            texFormat: gl.RGBA,
+            srcFormat: gl.RGBA,
+            srcType: gl.UNSIGNED_BYTE,
+        }, 
+        opt = {
+            TEXTURE_WRAP_S: gl.REPEAT,
+            TEXTURE_WRAP_T: gl.REPEAT,
+            TEXTURE_MIN_FILTER: gl.NEAREST,
+            TEXTURE_MAG_FILTER: gl.NEAREST,
+        }) {
+
+        const texture = gl.createTexture();
+        gl.activeTexture(gl.TEXTURE0 + iter);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        
+        // Set texture options
+        Object.entries(opt).forEach(([key, value]) => {
+            gl.texParameteri(gl.TEXTURE_2D, gl[key], value);
+        });
+
+        // Load image data
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            fmt.texFormat,
+            fmt.srcFormat,
+            fmt.srcType,
+            image
+        );
+    }
+
+    for (let i = 0; i < textures.length; i++) {
+        newTexture(i, textures[i].image, textures[i].format, textures[i].options);
+    }
+}
