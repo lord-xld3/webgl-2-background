@@ -24,6 +24,7 @@ uniform mat4 u_viewMatrix;
 uniform mat4 u_projectionMatrix;
 uniform vec3 u_lightWorldPosition;
 uniform vec3 u_viewWorldPosition;
+uniform vec3 u_diffuseColor;
 
 out vec3 v_color;
 out vec2 v_texcoord;
@@ -34,16 +35,15 @@ out vec3 v_surfaceToView;
 void main() {
 	vec4 modelViewPosition = u_viewMatrix * u_modelMatrix * a_position;
 	
-	v_surfaceToLight = u_lightWorldPosition - modelViewPosition.xyz;
-	v_surfaceToView = u_viewWorldPosition - modelViewPosition.xyz;
+	v_surfaceToLight = normalize(u_lightWorldPosition - modelViewPosition.xyz);
+	v_surfaceToView = normalize(u_viewWorldPosition - modelViewPosition.xyz);
 
 	// Diffuse lighting
 	vec3 normal = normalize(mat3(u_modelMatrix) * a_normal);
-	float diffuseFactor = max(dot(normalize(v_surfaceToLight), normal), 0.0);
-	v_color = a_color.rgb * diffuseFactor;
+	v_color = a_color.rgb * max(dot(normal, v_surfaceToLight), 0.0);
 
 	v_texcoord = a_texcoord;
-	v_normal = a_normal;
+	v_normal = normal;
 	gl_Position = u_projectionMatrix * modelViewPosition;
 }`;
 
@@ -51,13 +51,25 @@ const fsShader = `#version 300 es
 precision highp float;
 in vec3 v_color;
 in vec2 v_texcoord;
+in vec3 v_normal;
+in vec3 v_surfaceToLight;
+in vec3 v_surfaceToView;
 
 uniform sampler2D u_texture;
+uniform float u_shininess;
+uniform vec3 u_specularColor;
+uniform vec3 u_ambientLight;
 
 out vec4 outColor;
 
 void main() {
-	outColor = vec4(v_color, 1) * texture(u_texture, v_texcoord);
+	// Specular lighting
+	vec3 halfVector = normalize(v_surfaceToLight + v_surfaceToView);
+	float dotFromDirection = dot(v_normal, halfVector);
+	float specularFactor = pow(dotFromDirection, u_shininess);
+	vec3 specular = u_specularColor * specularFactor;
+	vec4 texelColor = texture(u_texture, v_texcoord);
+	outColor = vec4(texelColor.rgb * (v_color + u_ambientLight) + specular, texelColor.a);
 }`;
 
 const shaderProgram = glUtils.makeProgram(gl, vsShader, fsShader);
@@ -79,6 +91,9 @@ const uniforms = glUtils.getUniformLocations(gl, shaderProgram,
 		'u_texture',
 		'u_lightWorldPosition',
 		'u_viewWorldPosition',
+		'u_shininess',
+		'u_specularColor',
+		'u_ambientLight',
 	]
 );
 
@@ -185,7 +200,7 @@ const texture = gl.createTexture();
 gl.bindTexture(gl.TEXTURE_2D, texture);
 
 var image = new Image();
-image.src = 'img/myself.jpg';
+image.src = 'img/cobble.png';
 image.onload = function() {
 	gl.bindTexture(gl.TEXTURE_2D, texture);
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
@@ -214,14 +229,17 @@ window.addEventListener('resize', function () {
 })
 
 gl.useProgram(shaderProgram);
-let tickspeed = 0.01;
+let tickspeed = 0.005;
 gl.enable(gl.DEPTH_TEST);
 gl.cullFace(gl.BACK);
 
 gl.uniformMatrix4fv(uniforms.u_modelMatrix, false, modelMatrix);
 gl.uniformMatrix4fv(uniforms.u_viewMatrix, false, viewMatrix);
-gl.uniform3fv(uniforms.u_lightWorldPosition, [2, 2, 0]);
+gl.uniform3fv(uniforms.u_lightWorldPosition, [1, 1, 1]);
 gl.uniform3fv(uniforms.u_viewWorldPosition, cameraPosition);
+gl.uniform1f(uniforms.u_shininess, 256);
+gl.uniform3fv(uniforms.u_specularColor, [1, 1, 1]);
+gl.uniform3fv(uniforms.u_ambientLight, [0.1, 0.1, 0.1]);
 
 window.dispatchEvent(new Event('resize'));
 render();
