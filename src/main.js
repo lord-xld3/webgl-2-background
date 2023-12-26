@@ -31,19 +31,16 @@ out vec2 v_texcoord;
 out vec3 v_normal;
 out vec3 v_surfaceToLight;
 out vec3 v_surfaceToView;
+out mat4 v_modelMatrix;
 
 void main() {
 	vec4 modelViewPosition = u_viewMatrix * u_modelMatrix * a_position;
-	
 	v_surfaceToLight = normalize(u_lightWorldPosition - modelViewPosition.xyz);
 	v_surfaceToView = normalize(u_viewWorldPosition - modelViewPosition.xyz);
-
-	// Diffuse lighting
-	vec3 normal = normalize(mat3(u_modelMatrix) * a_normal);
-	v_color = a_color.rgb * max(dot(normal, v_surfaceToLight), 0.0);
-
+	v_color = a_color;
 	v_texcoord = a_texcoord;
-	v_normal = normal;
+	v_normal = normalize(mat3(u_modelMatrix) * a_normal);
+    v_modelMatrix = u_modelMatrix;
 	gl_Position = u_projectionMatrix * modelViewPosition;
 }`;
 
@@ -55,6 +52,7 @@ in vec2 v_texcoord;
 in vec3 v_normal;
 in vec3 v_surfaceToLight;
 in vec3 v_surfaceToView;
+in mat4 v_modelMatrix;
 
 uniform sampler2D u_texture;
 uniform sampler2D u_normalMap;
@@ -65,18 +63,24 @@ uniform vec3 u_ambientLight;
 out vec4 outColor;
 
 void main() {
-    vec3 normalMapValue = texture(u_normalMap, v_texcoord).xyz;
-    vec3 normalMapAdjusted = normalize(normalMapValue * 2.0 - 1.0);
-    vec3 finalNormal = normalize(v_normal * normalMapAdjusted);
+    // Normal map
+    vec3 normalMap = texture(u_normalMap, v_texcoord).rgb;
+    // Normal in world space
+    vec3 normal = normalize(mat3(v_modelMatrix) * normalMap);
+    // Final normal
+    vec3 finalNormal = normalize(normal + v_normal);
 
-    // Specular lighting
-    vec3 halfVector = normalize(v_surfaceToLight + v_surfaceToView);
-    float dotFromDirection = dot(finalNormal, halfVector);
-    float specularFactor = pow(dotFromDirection, u_shininess);
-    vec3 specular = u_specularColor * specularFactor;
+    // Specular
+    vec3 specular = u_specularColor * pow(dot(finalNormal, normalize(v_surfaceToLight + v_surfaceToView)), u_shininess);
 
+    // Diffuse lighting calculation (Lambertian reflectance)
+    float diffuseFactor = max(dot(finalNormal, v_surfaceToLight), 0.0);
+    vec3 diffuse = u_ambientLight + diffuseFactor * v_color;
+    // Sample texture
     vec4 texelColor = texture(u_texture, v_texcoord);
-    outColor = vec4(texelColor.rgb * (v_color + u_ambientLight) + specular, texelColor.a);
+
+    // Final color
+    outColor = vec4(texelColor.rgb * (diffuse + specular), texelColor.a);
 }`;
 
 const shaderProgram = glUtils.makeProgram(gl, vsShader, fsShader);
@@ -112,52 +116,52 @@ let bufferStride = 11 * Float32Array.BYTES_PER_ELEMENT;
 glUtils.makeBuffer(gl,
 	new Float32Array([
 		// Front face
-		-1,-1, 1, 0.5, 0.5, 0.5, 0, 1, 0, 0, 1,
-		 1,-1, 1, 0.5, 0.5, 0.5, 1, 1, 0, 0, 1,
-		 1, 1, 1, 0.5, 0.5, 0.5, 1, 0, 0, 0, 1,
-		-1,-1, 1, 0.5, 0.5, 0.5, 0, 1, 0, 0, 1,
-		 1, 1, 1, 0.5, 0.5, 0.5, 1, 0, 0, 0, 1,
-		-1, 1, 1, 0.5, 0.5, 0.5, 0, 0, 0, 0, 1,
+		-1,-1, 1, 1, 1, 1, 0, 1, 0, 0, 1,
+		 1,-1, 1, 1, 1, 1, 1, 1, 0, 0, 1,
+		 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1,
+		-1,-1, 1, 1, 1, 1, 0, 1, 0, 0, 1,
+		 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1,
+		-1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1,
 
 		// Back face
-		-1,-1,-1, 0.5, 0.5, 0.5, 0, 1, 0, 0, -1,
-		 1,-1,-1, 0.5, 0.5, 0.5, 0, 0, 0, 0, -1,
-		 1, 1,-1, 0.5, 0.5, 0.5, 1, 0, 0, 0, -1,
-		-1,-1,-1, 0.5, 0.5, 0.5, 0, 1, 0, 0, -1,
-		 1, 1,-1, 0.5, 0.5, 0.5, 1, 0, 0, 0, -1,
-		-1, 1,-1, 0.5, 0.5, 0.5, 1, 1, 0, 0, -1,
+		-1,-1,-1, 1, 1, 1, 0, 1, 0, 0, -1,
+		 1,-1,-1, 1, 1, 1, 0, 0, 0, 0, -1,
+		 1, 1,-1, 1, 1, 1, 1, 0, 0, 0, -1,
+		-1,-1,-1, 1, 1, 1, 0, 1, 0, 0, -1,
+		 1, 1,-1, 1, 1, 1, 1, 0, 0, 0, -1,
+		-1, 1,-1, 1, 1, 1, 1, 1, 0, 0, -1,
 
 		// Top face
-		-1, 1,-1, 0.5, 0.5, 0.5, 0, 1, 0, 1, 0,
-		 1, 1,-1, 0.5, 0.5, 0.5, 0, 0, 0, 1, 0,
-		 1, 1, 1, 0.5, 0.5, 0.5, 1, 0, 0, 1, 0,
-		-1, 1,-1, 0.5, 0.5, 0.5, 0, 1, 0, 1, 0,
-		 1, 1, 1, 0.5, 0.5, 0.5, 1, 0, 0, 1, 0,
-		-1, 1, 1, 0.5, 0.5, 0.5, 1, 1, 0, 1, 0,
+		-1, 1,-1, 1, 1, 1, 0, 1, 0, 1, 0,
+		 1, 1,-1, 1, 1, 1, 0, 0, 0, 1, 0,
+		 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0,
+		-1, 1,-1, 1, 1, 1, 0, 1, 0, 1, 0,
+		 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0,
+		-1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0,
 
 		// Bottom face
-		-1,-1,-1, 0.5, 0.5, 0.5, 0, 1, 0, -1, 0,
-		 1,-1,-1, 0.5, 0.5, 0.5, 1, 1, 0, -1, 0,
-		 1,-1, 1, 0.5, 0.5, 0.5, 1, 0, 0, -1, 0,
-		-1,-1,-1, 0.5, 0.5, 0.5, 0, 1, 0, -1, 0,
-		 1,-1, 1, 0.5, 0.5, 0.5, 1, 0, 0, -1, 0,
-		-1,-1, 1, 0.5, 0.5, 0.5, 0, 0, 0, -1, 0,
+		-1,-1,-1, 1, 1, 1, 0, 1, 0, -1, 0,
+		 1,-1,-1, 1, 1, 1, 1, 1, 0, -1, 0,
+		 1,-1, 1, 1, 1, 1, 1, 0, 0, -1, 0,
+		-1,-1,-1, 1, 1, 1, 0, 1, 0, -1, 0,
+		 1,-1, 1, 1, 1, 1, 1, 0, 0, -1, 0,
+		-1,-1, 1, 1, 1, 1, 0, 0, 0, -1, 0,
 
 		// Right face
-		 1,-1,-1, 0.5, 0.5, 0.5, 0, 1, 1, 0, 0,
-		 1, 1,-1, 0.5, 0.5, 0.5, 1, 1, 1, 0, 0,
-		 1, 1, 1, 0.5, 0.5, 0.5, 1, 0, 1, 0, 0,
-		 1,-1,-1, 0.5, 0.5, 0.5, 0, 1, 1, 0, 0,
-		 1, 1, 1, 0.5, 0.5, 0.5, 1, 0, 1, 0, 0,
-		 1,-1, 1, 0.5, 0.5, 0.5, 0, 0, 1, 0, 0,
+		 1,-1,-1, 1, 1, 1, 0, 1, 1, 0, 0,
+		 1, 1,-1, 1, 1, 1, 1, 1, 1, 0, 0,
+		 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0,
+		 1,-1,-1, 1, 1, 1, 0, 1, 1, 0, 0,
+		 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0,
+		 1,-1, 1, 1, 1, 1, 0, 0, 1, 0, 0,
 
 		// Left face
-		-1,-1,-1, 0.5, 0.5, 0.5, 0, 1, -1, 0, 0,
-		-1, 1,-1, 0.5, 0.5, 0.5, 0, 0, -1, 0, 0,
-		-1, 1, 1, 0.5, 0.5, 0.5, 1, 0, -1, 0, 0,
-		-1,-1,-1, 0.5, 0.5, 0.5, 0, 1, -1, 0, 0,
-		-1, 1, 1, 0.5, 0.5, 0.5, 1, 0, -1, 0, 0,
-		-1,-1, 1, 0.5, 0.5, 0.5, 0, 0, -1, 0, 0,
+		-1,-1,-1, 1, 1, 1, 0, 1, -1, 0, 0,
+		-1, 1,-1, 1, 1, 1, 0, 0, -1, 0, 0,
+		-1, 1, 1, 1, 1, 1, 1, 0, -1, 0, 0,
+		-1,-1,-1, 1, 1, 1, 0, 1, -1, 0, 0,
+		-1, 1, 1, 1, 1, 1, 1, 0, -1, 0, 0,
+		-1,-1, 1, 1, 1, 1, 0, 0, -1, 0, 0,
 	]),
 	gl.ARRAY_BUFFER,
 	gl.STATIC_DRAW
@@ -210,30 +214,24 @@ glUtils.setAttribPointer(gl,
 gl.bindVertexArray(null);
 
 // Textures
-let texture = new Image();
-texture.src = 'img/myself.jpg';
+const textures = [
+    {
+        src: 'img/myself.jpg',
+        params: {
+            TEXTURE_MIN_FILTER: gl.LINEAR_MIPMAP_LINEAR,
+            TEXTURE_MAG_FILTER: gl.NEAREST,
+        }
+    },
+    {
+        src: 'img/normal_map.png',
+        params: {
+            TEXTURE_MIN_FILTER: gl.LINEAR_MIPMAP_LINEAR,
+            TEXTURE_MAG_FILTER: gl.NEAREST,
+        }
+    },
+];
 
-let normalMap = new Image();
-normalMap.src = 'img/cobble_normal.png';
-
-glUtils.makeTextures(gl,
-	[
-		{
-			image: texture,
-			options: {
-				TEXTURE_MIN_FILTER: gl.NEAREST,
-				TEXTURE_MAG_FILTER: gl.LINEAR_MIPMAP_LINEAR,
-			}
-		},
-		{
-			image: normalMap,
-			options: {
-				TEXTURE_MIN_FILTER: gl.NEAREST,
-				TEXTURE_MAG_FILTER: gl.LINEAR_MIPMAP_LINEAR,
-			}
-		},
-	]
-)
+glUtils.loadTextures(gl, textures);
 
 // Model
 const modelMatrix = mat4.create();
@@ -241,7 +239,7 @@ mat4.translate(modelMatrix, modelMatrix, [0, 0, -6]);
 
 // View
 let cameraPosition = [0, 0, 0];
-const viewMatrix = mat4.lookAt(mat4.create(), cameraPosition, [0, 0, -6], [0, 1, 0]);
+const viewMatrix = mat4.lookAt(mat4.create(), cameraPosition, [0, 0, 0], [0, 1, 0]);
 
 // Projection
 const projectionMatrix = mat4.create();
