@@ -57,26 +57,27 @@ uniform sampler2D u_texture;
 uniform sampler2D u_normalMap;
 uniform float u_shininess;
 uniform vec3 u_specularColor;
+uniform vec3 u_diffuseColor;
 uniform vec3 u_ambientLight;
 
 out vec4 outColor;
 
 void main() {
     // Textures
-    vec3 map = texture(u_normalMap, v_texcoord).rgb;
+    vec4 map = texture(u_normalMap, v_texcoord);
 	vec4 tex = texture(u_texture, v_texcoord) * vec4(v_color, 1.0);
 
 	// Combine normals
-	vec3 norm = normalize(map * v_normal);
+	vec3 norm = normalize(map.rgb * v_normal);
 
 	// Diffuse (lambertian)
-	vec3 diffuse = dot(norm, v_surfaceToLight) * vec3(1.0,1.0,1.0);
+	vec3 diffuse = max(dot(norm, v_surfaceToLight) * u_diffuseColor, 0.0);
 
 	// Specular (blinn-phong)
 	vec3 halfVector = normalize(v_surfaceToLight + v_surfaceToView);
-	vec3 specular = u_specularColor * pow(dot(norm, halfVector), u_shininess);
+	vec3 specular = max(u_specularColor * pow(dot(norm, halfVector), u_shininess), 0.0);
 
-	vec3 light = u_ambientLight + max(diffuse + specular, 0.0);
+	vec3 light = min(u_ambientLight + diffuse, 1.0) + specular;
 
 	outColor = vec4(tex.rgb * light, tex.a);
 }`;
@@ -103,6 +104,7 @@ const uniforms = glUtils.getUniformLocations(gl, shaderProgram,
 		'u_viewWorldPosition',
 		'u_shininess',
 		'u_specularColor',
+		'u_diffuseColor',
 		'u_ambientLight',
 	]
 );
@@ -263,7 +265,8 @@ gl.uniform3fv(uniforms.u_lightWorldPosition, [2, 2, 2]);
 gl.uniform3fv(uniforms.u_viewWorldPosition, cameraPosition);
 gl.uniform1f(uniforms.u_shininess, 256);
 gl.uniform3fv(uniforms.u_specularColor, [1, 1, 1]);
-gl.uniform3fv(uniforms.u_ambientLight, [0.1, 0.1, 0.1]);
+gl.uniform3fv(uniforms.u_diffuseColor, [1, 1, 1]);
+gl.uniform3fv(uniforms.u_ambientLight, [0.01, 0.01, 0.01]);
 gl.uniform1i(uniforms.u_texture, 0);
 gl.uniform1i(uniforms.u_normalMap, 1);
 
