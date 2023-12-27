@@ -34,14 +34,18 @@ out vec3 v_surfaceToView;
 out mat4 v_modelMatrix;
 
 void main() {
-	vec4 modelViewPosition = u_viewMatrix * u_modelMatrix * a_position;
+
+	mat4 modelViewMatrix = u_viewMatrix * u_modelMatrix;
+	vec4 modelViewPosition = modelViewMatrix * a_position;
+	gl_Position = u_projectionMatrix * modelViewPosition;
+
 	v_surfaceToLight = normalize(u_lightWorldPosition - modelViewPosition.xyz);
 	v_surfaceToView = normalize(u_viewWorldPosition - modelViewPosition.xyz);
+
 	v_color = a_color;
 	v_texcoord = a_texcoord;
 	v_normal = normalize(mat3(u_modelMatrix) * a_normal);
-    v_modelMatrix = u_modelMatrix;
-	gl_Position = u_projectionMatrix * modelViewPosition;
+	
 }`;
 
 const fsShader = `#version 300 es
@@ -52,7 +56,6 @@ in vec2 v_texcoord;
 in vec3 v_normal;
 in vec3 v_surfaceToLight;
 in vec3 v_surfaceToView;
-in mat4 v_modelMatrix;
 
 uniform sampler2D u_texture;
 uniform sampler2D u_normalMap;
@@ -63,24 +66,19 @@ uniform vec3 u_ambientLight;
 out vec4 outColor;
 
 void main() {
-    // Normal map
-    vec3 normalMap = texture(u_normalMap, v_texcoord).rgb;
-    // Normal in world space
-    vec3 normal = normalize(mat3(v_modelMatrix) * normalMap);
-    // Final normal
-    vec3 finalNormal = normalize(normal + v_normal);
+    // Textures
+    vec3 map = texture(u_normalMap, v_texcoord).rgb;
+	vec4 tex = texture(u_texture, v_texcoord);
 
-    // Specular
-    vec3 specular = u_specularColor * pow(dot(finalNormal, normalize(v_surfaceToLight + v_surfaceToView)), u_shininess);
+	// Combine normals
+	vec3 norm = normalize(map * v_normal);
 
-    // Diffuse lighting calculation (Lambertian reflectance)
-    float diffuseFactor = max(dot(finalNormal, v_surfaceToLight), 0.0);
-    vec3 diffuse = u_ambientLight + diffuseFactor * v_color;
-    // Sample texture
-    vec4 texelColor = texture(u_texture, v_texcoord);
+	// Diffuse lighting
+	vec3 diffuse = dot(norm, v_surfaceToLight) * vec3(1.0,1.0,1.0);
 
-    // Final color
-    outColor = vec4(texelColor.rgb * (diffuse + specular), texelColor.a);
+	vec3 light = diffuse;
+
+	outColor = vec4(tex.rgb * light, tex.a);
 }`;
 
 const shaderProgram = glUtils.makeProgram(gl, vsShader, fsShader);
@@ -124,20 +122,20 @@ glUtils.makeBuffer(gl,
 		-1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1,
 
 		// Back face
-		-1,-1,-1, 1, 1, 1, 0, 1, 0, 0, -1,
-		 1,-1,-1, 1, 1, 1, 0, 0, 0, 0, -1,
-		 1, 1,-1, 1, 1, 1, 1, 0, 0, 0, -1,
-		-1,-1,-1, 1, 1, 1, 0, 1, 0, 0, -1,
-		 1, 1,-1, 1, 1, 1, 1, 0, 0, 0, -1,
-		-1, 1,-1, 1, 1, 1, 1, 1, 0, 0, -1,
+		-1,-1,-1, 1, 1, 1, 1, 1, 0, 0, -1,
+		 1,-1,-1, 1, 1, 1, 0, 1, 0, 0, -1,
+		 1, 1,-1, 1, 1, 1, 0, 0, 0, 0, -1,
+		-1,-1,-1, 1, 1, 1, 1, 1, 0, 0, -1,
+		 1, 1,-1, 1, 1, 1, 0, 0, 0, 0, -1,
+		-1, 1,-1, 1, 1, 1, 1, 0, 0, 0, -1,
 
 		// Top face
-		-1, 1,-1, 1, 1, 1, 0, 1, 0, 1, 0,
-		 1, 1,-1, 1, 1, 1, 0, 0, 0, 1, 0,
-		 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0,
-		-1, 1,-1, 1, 1, 1, 0, 1, 0, 1, 0,
-		 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0,
-		-1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0,
+		-1, 1,-1, 1, 1, 1, 0, 0, 0, 1, 0,
+		 1, 1,-1, 1, 1, 1, 1, 0, 0, 1, 0,
+		 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0,
+		-1, 1,-1, 1, 1, 1, 0, 0, 0, 1, 0,
+		 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0,
+		-1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0,
 
 		// Bottom face
 		-1,-1,-1, 1, 1, 1, 0, 1, 0, -1, 0,
@@ -148,12 +146,12 @@ glUtils.makeBuffer(gl,
 		-1,-1, 1, 1, 1, 1, 0, 0, 0, -1, 0,
 
 		// Right face
-		 1,-1,-1, 1, 1, 1, 0, 1, 1, 0, 0,
-		 1, 1,-1, 1, 1, 1, 1, 1, 1, 0, 0,
-		 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0,
-		 1,-1,-1, 1, 1, 1, 0, 1, 1, 0, 0,
-		 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0,
-		 1,-1, 1, 1, 1, 1, 0, 0, 1, 0, 0,
+		 1,-1,-1, 1, 1, 1, 1, 1, 1, 0, 0,
+		 1, 1,-1, 1, 1, 1, 1, 0, 1, 0, 0,
+		 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0,
+		 1,-1,-1, 1, 1, 1, 1, 1, 1, 0, 0,
+		 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0,
+		 1,-1, 1, 1, 1, 1, 0, 1, 1, 0, 0,
 
 		// Left face
 		-1,-1,-1, 1, 1, 1, 0, 1, -1, 0, 0,
@@ -161,7 +159,7 @@ glUtils.makeBuffer(gl,
 		-1, 1, 1, 1, 1, 1, 1, 0, -1, 0, 0,
 		-1,-1,-1, 1, 1, 1, 0, 1, -1, 0, 0,
 		-1, 1, 1, 1, 1, 1, 1, 0, -1, 0, 0,
-		-1,-1, 1, 1, 1, 1, 0, 0, -1, 0, 0,
+		-1,-1, 1, 1, 1, 1, 1, 1, -1, 0, 0,
 	]),
 	gl.ARRAY_BUFFER,
 	gl.STATIC_DRAW
@@ -235,10 +233,10 @@ glUtils.loadTextures(gl, textures);
 
 // Model
 const modelMatrix = mat4.create();
-mat4.translate(modelMatrix, modelMatrix, [0, 0, -6]);
+mat4.translate(modelMatrix, modelMatrix, [0, 0, 0]);
 
 // View
-let cameraPosition = [0, 0, 0];
+let cameraPosition = [0, 0, 6];
 const viewMatrix = mat4.lookAt(mat4.create(), cameraPosition, [0, 0, 0], [0, 1, 0]);
 
 // Projection
@@ -275,7 +273,7 @@ function render() {
 	gl.clearColor(0, 0, 0, 1);
 	gl.clear(gl.COLOR_BUFFER_BIT);
 
-	mat4.rotate(modelMatrix, modelMatrix, tickspeed, [0.5,1,1.5]);
+	mat4.rotate(modelMatrix, modelMatrix, tickspeed, [1,1,0]);
 	gl.uniformMatrix4fv(uniforms.u_modelMatrix, false, modelMatrix);
 	gl.drawArrays(gl.TRIANGLES, 0, 36);
 	requestAnimationFrame(render);
