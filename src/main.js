@@ -25,12 +25,14 @@ uniform mat4 u_projectionMatrix;
 uniform vec3 u_lightWorldPosition;
 uniform vec3 u_viewWorldPosition;
 uniform vec3 u_diffuseColor;
+uniform float u_tick;
 
 out vec3 v_color;
 out vec2 v_texcoord;
 out vec3 v_normal;
 out vec3 v_surfaceToLight;
 out vec3 v_surfaceToView;
+out float v_tick;
 
 void main() {
 	vec4 modelViewPosition = u_viewMatrix * u_modelMatrix * a_position;
@@ -42,6 +44,7 @@ void main() {
 	v_color = a_color;
 	v_texcoord = a_texcoord;
 	v_normal = normalize(mat3(u_modelMatrix) * a_normal);
+	v_tick = u_tick;
 }`;
 
 const fsShader = `#version 300 es
@@ -49,37 +52,22 @@ precision highp float;
 
 in vec3 v_color;
 in vec2 v_texcoord;
-in vec3 v_normal;
-in vec3 v_surfaceToLight;
-in vec3 v_surfaceToView;
+in float v_tick;
 
 uniform sampler2D u_texture;
-uniform sampler2D u_normalMap;
-uniform float u_shininess;
-uniform vec3 u_specularColor;
-uniform vec3 u_diffuseColor;
-uniform vec3 u_ambientLight;
 
 out vec4 outColor;
 
 void main() {
+	// 'Scroll' texcoords
+	vec2 scroll1 = v_texcoord + vec2(v_tick, v_tick);
+	vec2 scroll2 = v_texcoord + vec2(v_tick + 0.5, -v_tick - 0.5);
+
     // Textures
-    vec4 map = texture(u_normalMap, v_texcoord);
-	vec4 tex = texture(u_texture, v_texcoord) * vec4(v_color, 1.0);
+	vec4 tex1 = texture(u_texture, scroll1) * vec4(v_color, 0.1);
+	vec4 tex2 = texture(u_texture, scroll2) * vec4(v_color, 0.1);
 
-	// Combine normals
-	vec3 norm = normalize(map.rgb * v_normal);
-
-	// Diffuse (lambertian)
-	vec3 diffuse = max(dot(norm, v_surfaceToLight) * u_diffuseColor, 0.0);
-
-	// Specular (blinn-phong)
-	vec3 halfVector = normalize(v_surfaceToLight + v_surfaceToView);
-	vec3 specular = max(u_specularColor * pow(dot(norm, halfVector), u_shininess), 0.0);
-
-	vec3 light = min(u_ambientLight + diffuse, 1.0) + specular;
-
-	outColor = vec4(tex.rgb * light, tex.a);
+	outColor = vec4(tex1 * tex2);
 }`;
 
 const shaderProgram = glUtils.makeProgram(gl, vsShader, fsShader);
@@ -106,6 +94,7 @@ const uniforms = glUtils.getUniformLocations(gl, shaderProgram,
 		'u_specularColor',
 		'u_diffuseColor',
 		'u_ambientLight',
+		'u_tick',
 	]
 );
 
@@ -216,7 +205,7 @@ gl.bindVertexArray(null);
 // Textures
 const textures = [
     {
-        src: 'img/myself.jpg',
+        src: 'img/water.jpg',
         params: {
             TEXTURE_MIN_FILTER: gl.LINEAR_MIPMAP_LINEAR,
             TEXTURE_MAG_FILTER: gl.NEAREST,
@@ -254,7 +243,9 @@ window.addEventListener('resize', function () {
 })
 
 gl.useProgram(shaderProgram);
-let tickspeed = 0.005;
+let tickspeed = 0.0005;
+let tick = 0;
+let maxTick = 1.0;
 gl.enable(gl.DEPTH_TEST);
 gl.cullFace(gl.BACK);
 
@@ -276,9 +267,10 @@ render();
 function render() {
 	gl.clearColor(0, 0, 0, 1);
 	gl.clear(gl.COLOR_BUFFER_BIT);
-
+	tick = (tick + tickspeed) % maxTick;
 	mat4.rotate(modelMatrix, modelMatrix, tickspeed, [1,1,0]);
 	gl.uniformMatrix4fv(uniforms.u_modelMatrix, false, modelMatrix);
+	gl.uniform1f(uniforms.u_tick, tick);
 	gl.drawArrays(gl.TRIANGLES, 0, 36);
 	requestAnimationFrame(render);
 }
