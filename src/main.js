@@ -205,10 +205,10 @@ gl.bindVertexArray(null);
 // Textures
 const textures = [
     {
-        src: 'img/water.jpg',
+        src: 'img/water.png',
         params: {
             TEXTURE_MIN_FILTER: gl.LINEAR_MIPMAP_LINEAR,
-            TEXTURE_MAG_FILTER: gl.NEAREST,
+            TEXTURE_MAG_FILTER: gl.LINEAR,
         }
     },
     {
@@ -224,11 +224,10 @@ glUtils.loadTextures(gl, textures);
 
 // Model
 const modelMatrix = mat4.create();
-mat4.translate(modelMatrix, modelMatrix, [0, 0, 0]);
 mat4.rotate(modelMatrix, modelMatrix, Math.PI / 4, [1, 1, 0]);
 
 // View
-let cameraPosition = [0, 0, 5];
+let cameraPosition = [0, 0, 0];
 const viewMatrix = mat4.lookAt(mat4.create(), cameraPosition, [0, 0, 0], [0, 1, 0]);
 
 // Projection
@@ -238,14 +237,14 @@ window.addEventListener('resize', function () {
 	gl.canvas.width = window.innerWidth;
 	gl.canvas.height = window.innerHeight;
 	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-	mat4.perspective(projectionMatrix, Math.PI / 4, gl.canvas.width / gl.canvas.height, 0.1, 100);
+	mat4.perspective(projectionMatrix, Math.PI / 1.5, gl.canvas.width / gl.canvas.height, 0.1, 100);
 	gl.uniformMatrix4fv(uniforms.u_projectionMatrix, false, projectionMatrix);
 })
 
 gl.useProgram(shaderProgram);
 let tickspeed = 0.0002;
 let tick = 0;
-let maxTick = 1.0;
+let maxTick = Math.PI * 2;
 gl.enable(gl.DEPTH_TEST);
 gl.cullFace(gl.BACK);
 
@@ -268,7 +267,7 @@ function render() {
 	gl.clearColor(0, 0, 0, 1);
 	gl.clear(gl.COLOR_BUFFER_BIT);
 	tick = (tick + tickspeed) % maxTick;
-	mat4.rotate(modelMatrix, modelMatrix, tickspeed, [1,1,0]);
+	mat4.rotate(modelMatrix, modelMatrix, tickspeed * 10, [1,1,0]);
 	gl.uniformMatrix4fv(uniforms.u_modelMatrix, false, modelMatrix);
 	gl.uniform1f(uniforms.u_tick, tick);
 	gl.drawArrays(gl.TRIANGLES, 0, 36);
