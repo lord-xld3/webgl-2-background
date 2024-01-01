@@ -60,8 +60,8 @@ out vec4 outColor;
 
 void main() {
 	// 'Scroll' texcoords
-	vec2 scroll1 = v_texcoord + vec2(v_tick, v_tick);
-	vec2 scroll2 = v_texcoord + vec2(v_tick + 0.5, -v_tick - 0.5);
+	vec2 scroll1 = v_texcoord + vec2(v_tick, v_tick * 4.0);
+	vec2 scroll2 = v_texcoord + vec2(-v_tick + 0.5, v_tick * 4.0 + 0.5);
 
     // Textures
 	vec4 tex1 = texture(u_texture, scroll1) * vec4(v_color, 0.1);
@@ -243,7 +243,7 @@ window.addEventListener('resize', function () {
 })
 
 gl.useProgram(shaderProgram);
-let tickspeed = 0.0005;
+let tickspeed = 0.0002;
 let tick = 0;
 let maxTick = 1.0;
 gl.enable(gl.DEPTH_TEST);
