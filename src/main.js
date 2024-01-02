@@ -169,10 +169,10 @@ const viewMatrix = mat4.lookAt(mat4.create(), cameraPosition, [0, 0, 0], [0, 1, 
 const projectionMatrix = mat4.create();
 
 window.addEventListener('resize', function () {
-	gl.canvas.width = window.innerWidth;
-	gl.canvas.height = window.innerHeight;
+	gl.canvas.width = gl.canvas.clientWidth;
+	gl.canvas.height = gl.canvas.clientHeight;
 	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-	mat4.perspective(projectionMatrix, Math.PI / 1.5, gl.canvas.width / gl.canvas.height, 0.1, 100);
+	mat4.perspective(projectionMatrix, Math.PI / 2, gl.canvas.width / gl.canvas.height, 0.1, 100);
 	uniformBufferData.set(projectionMatrix, 32);
 })
 
@@ -195,7 +195,7 @@ render();
 
 function render() {
 	// Clear screen
-	gl.clearColor(0.4, 0.2, 0, 1);
+	gl.clearColor(0, 0, 0, 0);
 	gl.clear(gl.COLOR_BUFFER_BIT);
 	
 	// Actual logic
