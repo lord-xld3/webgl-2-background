@@ -5,17 +5,20 @@ const TerserPlugin = require('terser-webpack-plugin');
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 
+const parentDir = path.resolve(__dirname, '..');
+
 module.exports = {
     entry: {
         main: [
-            './src/main.js', 
-            './src/style.css', 
-            ...fs.readdirSync('./src/img').map(file => `./src/img/${file}`),
+            './main.js', 
+            './style.css', 
+            ...fs.readdirSync('./img').map(file => `./img/${file}`),
+            ...fs.readdirSync('./shaders').map(file => `./shaders/${file}`)
         ],
     },
     output: {
         filename: 'main.js',
-        path: path.resolve(__dirname, 'dist'),
+        path: path.resolve(parentDir, 'dist'),
     },
     module: {
         rules: [
@@ -24,11 +27,11 @@ module.exports = {
                 use: [MiniCssExtractPlugin.loader, 'css-loader'],
             },
             {
-                test: /\.(png|svg|jpg|gif|webp)$/,
+                test: /\.(png|svg|jpg|gif|webp|frag|vert)$/,
                 use: {
                     loader: 'file-loader',
                     options: {
-                        name: 'img/[name].[ext]', // Output path for images
+                        name: '[path][name].[ext]',
                     },
                 },
             },
@@ -36,7 +39,7 @@ module.exports = {
     },
     plugins: [
         new HtmlWebpackPlugin({
-            template: './src/index.html',
+            template: './index.html',
             minify: {
                 collapseWhitespace: true,
                 removeComments: true,

@@ -13,48 +13,8 @@ if (!gl) {
 console.log(`Renderer: ${gl.getParameter(gl.RENDERER)}`);
 console.log(`Vendor: ${gl.getParameter(gl.VENDOR)}`);
 
-const vsShader = `#version 300 es
-in vec4 a_position;
-in vec2 a_texcoord;
-
-uniform uniformStruct {
-	mat4 u_modelMatrix;
-	mat4 u_viewMatrix;
-	mat4 u_projectionMatrix;
-	float u_tick;
-};
-
-out vec2 v_texcoord;
-out float v_tick;
-
-void main() {
-	vec4 modelViewPosition = u_viewMatrix * u_modelMatrix * a_position;
-	gl_Position = u_projectionMatrix * modelViewPosition;
-	v_texcoord = a_texcoord;
-	v_tick = u_tick;
-}`;
-
-const fsShader = `#version 300 es
-precision highp float;
-
-in vec2 v_texcoord;
-in float v_tick;
-
-uniform sampler2D u_texture;
-
-out vec4 outColor;
-
-void main() {
-	// 'Scroll' texcoords
-	vec2 scroll1 = v_texcoord + vec2(v_tick, v_tick * 4.0);
-	vec2 scroll2 = v_texcoord + vec2(-v_tick + 0.5, v_tick * 4.0 + 0.5);
-
-    // Textures
-	vec3 tex1 = texture(u_texture, scroll1).rgb;
-	vec3 tex2 = texture(u_texture, scroll2).rgb;
-
-	outColor = vec4(tex1 * tex2, 0.5);
-}`;
+const vsShader = await fetch('./shaders/water.vert').then(res => res.text());
+const fsShader = await fetch('./shaders/water.frag').then(res => res.text());
 
 const shaderProgram = glUtils.makeProgram(gl, vsShader, fsShader);
 
