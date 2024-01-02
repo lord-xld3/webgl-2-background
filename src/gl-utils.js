@@ -90,7 +90,6 @@ export function makeBuffer(gl, data, bufferType, drawType) {
  * @param {Boolean} pointer.normalize whether integer data values should be normalized
  * @param {Number} pointer.stride byte offset between consecutive vertex attributes
  * @param {Number} pointer.offset offset of the first component of the first vertex attribute
- * @returns {void} nothing
  */
 export function setAttribPointer(gl, attrib, pointer) {
     gl.enableVertexAttribArray(attrib);
@@ -110,7 +109,6 @@ export function setAttribPointer(gl, attrib, pointer) {
  * @param {String} textures.src path to texture image
  * @param {Object} textures.fmt texture format object
  * @param {Object} textures.params texture parameters object
- * @returns {void} nothing
  */
 export async function loadTextures(gl, textures) {
     textures.forEach((tex, i) => {

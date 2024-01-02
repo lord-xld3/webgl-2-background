@@ -17,10 +17,12 @@ const vsShader = `#version 300 es
 in vec4 a_position;
 in vec2 a_texcoord;
 
-uniform mat4 u_modelMatrix;
-uniform mat4 u_viewMatrix;
-uniform mat4 u_projectionMatrix;
-uniform float u_tick;
+uniform uniformStruct {
+	mat4 u_modelMatrix;
+	mat4 u_viewMatrix;
+	mat4 u_projectionMatrix;
+	float u_tick;
+};
 
 out vec2 v_texcoord;
 out float v_tick;
@@ -63,15 +65,42 @@ const attribs = glUtils.getAttribLocations(gl, shaderProgram,
 	]
 );
 
-const uniforms = glUtils.getUniformLocations(gl, shaderProgram,
-	[
-		'u_modelMatrix',
-		'u_viewMatrix',
-		'u_projectionMatrix',
-		'u_texture',
-		'u_tick',
-	]
+// Define the uniform buffer data
+const uniformBufferData = new Float32Array([
+	// Model matrix
+	1, 0, 0, 0,
+	0, 1, 0, 0,
+	0, 0, 1, 0,
+	0, 0, 0, 1,
+
+	// View matrix
+	1, 0, 0, 0,
+	0, 1, 0, 0,
+	0, 0, 1, 0,
+	0, 0, 0, 1,
+
+	// Projection matrix
+	1, 0, 0, 0,
+	0, 1, 0, 0,
+	0, 0, 1, 0,
+	0, 0, 0, 1,
+
+	// Tick value
+	0,
+]);
+
+const uniformBuffer = glUtils.makeBuffer(gl,
+	uniformBufferData,
+	gl.UNIFORM_BUFFER,
+	gl.DYNAMIC_DRAW
 );
+
+// Bind the uniform buffer object to the shader program
+const uniformBlockIndex = gl.getUniformBlockIndex(shaderProgram, 'uniformStruct');
+gl.uniformBlockBinding(shaderProgram, uniformBlockIndex, 0);
+
+// Bind the uniform buffer object to the binding point 0
+gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uniformBuffer);
 
 const cubeVAO = gl.createVertexArray();
 gl.bindVertexArray(cubeVAO);
@@ -159,10 +188,10 @@ gl.bindVertexArray(null);
 const textures = [
     {
         src: 'img/water.png',
-        params: {
-            TEXTURE_MIN_FILTER: gl.LINEAR_MIPMAP_LINEAR,
-            TEXTURE_MAG_FILTER: gl.LINEAR,
-        }
+		params: {
+			TEXTURE_MIN_FILTER: gl.LINEAR_MIPMAP_LINEAR,
+			TEXTURE_MAG_FILTER: gl.LINEAR,
+		}
     },
 ];
 
@@ -184,7 +213,7 @@ window.addEventListener('resize', function () {
 	gl.canvas.height = window.innerHeight;
 	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 	mat4.perspective(projectionMatrix, Math.PI / 1.5, gl.canvas.width / gl.canvas.height, 0.1, 100);
-	gl.uniformMatrix4fv(uniforms.u_projectionMatrix, false, projectionMatrix);
+	uniformBufferData.set(projectionMatrix, 32);
 })
 
 gl.useProgram(shaderProgram);
@@ -197,8 +226,9 @@ gl.enable(gl.BLEND);
 gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
 gl.bindVertexArray(cubeVAO);
-gl.uniformMatrix4fv(uniforms.u_modelMatrix, false, modelMatrix);
-gl.uniformMatrix4fv(uniforms.u_viewMatrix, false, viewMatrix);
+uniformBufferData.set(modelMatrix, 0);
+uniformBufferData.set(viewMatrix, 16);
+uniformBufferData.set(projectionMatrix, 32);
 
 window.dispatchEvent(new Event('resize'));
 render();
@@ -212,9 +242,14 @@ function render() {
 	tick = (tick + tickspeed) % maxTick;
 	mat4.rotate(modelMatrix, modelMatrix, tickspeed * 10, [1,1,0]);
 	
-	// Update uniforms
-	gl.uniformMatrix4fv(uniforms.u_modelMatrix, false, modelMatrix);
-	gl.uniform1f(uniforms.u_tick, tick);
+	// Update uniform buffer data
+	uniformBufferData.set(modelMatrix, 0);
+	uniformBufferData[48] = tick;
+
+	// Copy data to uniform buffer
+	gl.bindBuffer(gl.UNIFORM_BUFFER, uniformBuffer);
+	gl.bufferSubData(gl.UNIFORM_BUFFER, 0, uniformBufferData);
+	gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
 	// Render
 	gl.drawArrays(gl.TRIANGLES, 0, 36);
