@@ -81,12 +81,7 @@ const uboBlock: UniformBlockInfo = {
     binding: 0,
 };
 
-const uboBuffer: BufferInfo = {
-    data: new Float32Array([0.2, 0.8, 0.5, 1.0]),
-    target: ctx.gl.UNIFORM_BUFFER,
-    usage: ctx.gl.STATIC_DRAW,
-};
-
+const uboBuffer = new Float32Array([0.2, 0.8, 0.5, 1.0])
 const ubo = ctx.makeUBO(program, uboBlock, uboBuffer);
 
 // Pre-render stuff
@@ -108,10 +103,7 @@ function render() {
     tick = (tick + 0.005) % maxTick;
 
     // Update the uniform struct
-    ubo.update(
-        new Float32Array([Math.sin(tick), Math.cos(tick), Math.tan(tick), 1.0]),
-        0 // offset
-    );
+    ubo.update(new Float32Array([Math.sin(tick), Math.cos(tick), Math.tan(tick), 1.0]));
     
     // Draw stuff
     ctx.gl.useProgram(program);

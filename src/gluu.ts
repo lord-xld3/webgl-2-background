@@ -72,14 +72,19 @@ class Gluu {
      * Creates a new UBO (Uniform Buffer Object) using the provided WebGL program, uniform block information, and buffer information.
      * @param prog The WebGL program to associate the UBO with.
      * @param blockInfo The uniform block information object specifying the uniform block.
-     * @param bufInfo The buffer information object containing the data for the UBO.
+     * @param data The data to store in the UBO.
      * @returns The newly created UBO.
      */
     public makeUBO(
         prog: WebGLProgram,
         blockInfo: UniformBlockInfo,
-        bufInfo: BufferInfo,
+        data: ArrayBufferView,
     ): UBO {
+        const bufInfo: BufferInfo = {
+            data,
+            target: this.gl.UNIFORM_BUFFER,
+            usage: this.gl.STATIC_DRAW,
+        };
         return new UBO(this.gl, prog, blockInfo, bufInfo);
     }
 
