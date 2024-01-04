@@ -1,1 +1,1 @@
-sudo cp -r dist/. /var/www/html && sudo service nginx restart
+sudo cp -r dist/. /var/www/html && sudo systemctl reload nginx

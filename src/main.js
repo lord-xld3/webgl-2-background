@@ -13,8 +13,12 @@ if (!gl) {
 console.log(`Renderer: ${gl.getParameter(gl.RENDERER)}`);
 console.log(`Vendor: ${gl.getParameter(gl.VENDOR)}`);
 
-const vsShader = await fetch('./shaders/water.vert').then(res => res.text());
-const fsShader = await fetch('./shaders/water.frag').then(res => res.text());
+const getResources = Promise.all([
+	fetch('./shaders/water.vert').then(res => res.text()),
+	fetch('./shaders/water.frag').then(res => res.text())
+]);
+
+const [vsShader, fsShader] = await getResources;
 
 const shaderProgram = glUtils.makeProgram(gl, vsShader, fsShader);
 
@@ -179,7 +183,8 @@ window.addEventListener('resize', function () {
 gl.useProgram(shaderProgram);
 let tickspeed = 0.0001;
 let tick = 0;
-let maxTick = Math.PI * 2;
+let maxTick = 1.0;
+let rotationSpeed = Math.PI / 1000;
 // Disable to fix transparency issues when object is transparent on multiple sides
 // gl.enable(gl.DEPTH_TEST);
 gl.enable(gl.BLEND);
@@ -200,7 +205,7 @@ function render() {
 	
 	// Actual logic
 	tick = (tick + tickspeed) % maxTick;
-	mat4.rotate(modelMatrix, modelMatrix, tickspeed * 10, [1,1,0]);
+	mat4.rotate(modelMatrix, modelMatrix, rotationSpeed, [1,1,0]);
 	
 	// Update uniform buffer data
 	uniformBufferData.set(modelMatrix, 0);
