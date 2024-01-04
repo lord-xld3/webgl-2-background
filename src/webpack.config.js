@@ -10,7 +10,7 @@ const parentDir = path.resolve(__dirname, '..');
 module.exports = {
     entry: {
         main: [
-            './main.js', 
+            './main.ts', 
             './style.css', 
             ...fs.readdirSync('./img').map(file => `./img/${file}`),
             ...fs.readdirSync('./shaders').map(file => `./shaders/${file}`)
@@ -22,6 +22,11 @@ module.exports = {
     },
     module: {
         rules: [
+            {
+                test: /\.(ts|tsx)$/,
+                use: 'ts-loader',
+                exclude: /node_modules/,
+            },
             {
                 test: /\.css$/,
                 use: [MiniCssExtractPlugin.loader, 'css-loader'],
@@ -36,6 +41,9 @@ module.exports = {
                 },
             },
         ],
+    },
+    resolve: {
+        extensions: ['.tsx', '.ts', '.js'],
     },
     plugins: [
         new HtmlWebpackPlugin({
