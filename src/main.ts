@@ -3,6 +3,7 @@ import {Gluu, AttributeInfo, BufferInfo, UniformBlockInfo} from './gluu';
 // Create a Gluu context
 let canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const ctx = new Gluu(canvas);
+const gl = ctx.gl;
 
 const vertexShader = `#version 300 es
 in vec4 a_position;
@@ -47,8 +48,8 @@ const triangleBuffer: BufferInfo = {
         0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0,
         -0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 1.0
     ]),
-    target: ctx.gl.ARRAY_BUFFER,
-    usage: ctx.gl.STATIC_DRAW,
+    target: gl.ARRAY_BUFFER,
+    usage: gl.STATIC_DRAW,
     stride: 7 * Float32Array.BYTES_PER_ELEMENT,
 };
 
@@ -85,8 +86,8 @@ const uboBuffer = new Float32Array([0.2, 0.8, 0.5, 1.0])
 const ubo = ctx.makeUBO(program, uboBlock, uboBuffer);
 
 // Pre-render stuff
-ctx.gl.clearColor(0.0, 0.0, 0.0, 1.0);
-ctx.gl.clear(ctx.gl.COLOR_BUFFER_BIT);
+gl.clearColor(0.0, 0.0, 0.0, 1.0);
+gl.clear(gl.COLOR_BUFFER_BIT);
 ctx.resizeToCanvas();
 let tick = 0;
 let maxTick = Math.PI;
@@ -97,7 +98,7 @@ render();
 function render() {
     // Pre-draw stuff
     ctx.resizeToCanvas();
-    ctx.gl.clear(ctx.gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
     // Logic
     tick = (tick + 0.005) % maxTick;
@@ -106,9 +107,9 @@ function render() {
     ubo.update(new Float32Array([Math.sin(tick), Math.cos(tick), Math.tan(tick), 1.0]));
     
     // Draw stuff
-    ctx.gl.useProgram(program);
+    gl.useProgram(program);
     // vao.bind();
-    ctx.gl.drawArrays(ctx.gl.TRIANGLES, 0, 3);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
     // vao.unbind();
     
     // Post-draw stuff
