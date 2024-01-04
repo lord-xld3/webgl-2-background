@@ -1,3 +1,6 @@
+/**
+ * Represents a WebGL utility class for managing WebGL context, shaders, programs, and buffers.
+ */
 class Gluu {
     public canvas: HTMLCanvasElement;
     public gl: WebGL2RenderingContext;
@@ -22,37 +25,62 @@ class Gluu {
         return shader;
     }
 
+    /**
+     * Creates a WebGL program using the provided vertex and fragment shaders.
+     * @param vs The source code of the vertex shader.
+     * @param fs The source code of the fragment shader.
+     * @returns The created WebGL program.
+     */
     public makeProgram(
-        vertexShader: string,
-        fragmentShader: string,
+        vs: string,
+        fs: string,
     ): WebGLProgram {
-        const program = this.gl.createProgram() as WebGLProgram;
-        this.gl.attachShader(program, this.makeShader(vertexShader, this.gl.VERTEX_SHADER));
-        this.gl.attachShader(program, this.makeShader(fragmentShader, this.gl.FRAGMENT_SHADER));
-        this.gl.linkProgram(program);
-        if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
-            throw new Error(this.gl.getProgramInfoLog(program) as string);
+        const prog = this.gl.createProgram() as WebGLProgram;
+        this.gl.attachShader(prog, this.makeShader(vs, this.gl.VERTEX_SHADER));
+        this.gl.attachShader(prog, this.makeShader(fs, this.gl.FRAGMENT_SHADER));
+        this.gl.linkProgram(prog);
+        if (!this.gl.getProgramParameter(prog, this.gl.LINK_STATUS)) {
+            throw new Error(this.gl.getProgramInfoLog(prog) as string);
         }
-        return program;
+        return prog;
     }
 
+    /**
+     * Creates a new VBO (Vertex Buffer Object) using the provided WebGL program, attribute pointers, and buffer information.
+     * @param prog The WebGL program to associate the VBO with.
+     * @param ptrs An array of attribute information objects specifying the attribute pointers.
+     * @param bufInfo The buffer information object containing the data for the VBO.
+     * @returns The newly created VBO.
+     */
     public makeVBO(
-        program: WebGLProgram,
-        pointers: AttributeInfo[],
-        buffer_info: BufferInfo,
+        prog: WebGLProgram,
+        ptrs: AttributeInfo[],
+        bufInfo: BufferInfo,
     ): VBO {
-        return new VBO(this.gl, program, pointers, buffer_info);
+        return new VBO(this.gl, prog, ptrs, bufInfo);
     }
 
+    /**
+     * Creates a new VAO (Vertex Array Object).
+     * @returns The newly created VAO.
+     */
     public makeVAO(): VAO {
         return new VAO(this.gl);
     }
 
-    public clear() {
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+    /**
+     * Resizes the canvas element to match the size of its parent container and updates the WebGL viewport accordingly.
+     */
+    public resizeToCanvas(): void {
+        this.canvas.width = this.canvas.clientWidth;
+        this.canvas.height = this.canvas.clientHeight;
+        this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     }
 }
 
+/**
+ * Represents information about an attribute.
+ */
 interface AttributeInfo {
     name: string;
     size: number;
@@ -62,8 +90,11 @@ interface AttributeInfo {
     offset?: number;
 }
 
+/**
+ * Represents a vertex attribute pointer.
+ */
 interface VertexAttributePointer {
-    attributeLocation: number;
+    loc: number;
     size: number;
     type: number;
     normalized: boolean;
@@ -71,85 +102,113 @@ interface VertexAttributePointer {
     offset: number;
 }
 
+/**
+ * Represents information about a buffer.
+ */
 interface BufferInfo {
     data: Float32Array | Uint16Array;
     target: number;
     usage: number;
+    stride?: number;
 }
 
+/**
+ * Represents a buffer object in WebGL.
+ */
 abstract class BufferObject {
     gl: WebGL2RenderingContext;
     buffer: WebGLBuffer;
-    buffer_info: BufferInfo;
-    program: WebGLProgram;
+    bufInfo: BufferInfo;
+    prog: WebGLProgram;
 
     constructor(
         gl: WebGL2RenderingContext,
-        buffer_info: BufferInfo,
-        program: WebGLProgram,
+        bufInfo: BufferInfo,
+        prog: WebGLProgram,
     ) {
         this.gl = gl;
         this.buffer = this.gl.createBuffer() as WebGLBuffer;
-        this.buffer_info = buffer_info;
-        this.program = program;
+        this.bufInfo = bufInfo;
+        this.prog = prog;
     }
 
+    /**
+     * Binds the buffer object.
+     */
     public abstract bind(): void;
+
+    /**
+     * Unbinds the buffer object.
+     */
     public abstract unbind(): void;
 }
 
+/**
+ * Represents a Vertex Buffer Object (VBO) in WebGL.
+ * A VBO is used to store vertex data that can be efficiently accessed by the GPU.
+ */
 class VBO extends BufferObject {
-    pointers: VertexAttributePointer[];
+    ptrs: VertexAttributePointer[];
 
     constructor(
         gl: WebGL2RenderingContext,
-        program: WebGLProgram,
-        pointers: AttributeInfo[],
-        buffer_info: BufferInfo,
+        prog: WebGLProgram,
+        ptrs: AttributeInfo[],
+        bufInfo: BufferInfo,
     ) {
-        super(gl, buffer_info, program);
-        this.pointers = pointers.map((pointer) => {
-            const attributeLocation = this.gl.getAttribLocation(this.program, pointer.name);
-            if (attributeLocation === -1) {
-                throw new Error(`Attribute ${pointer.name} does not exist`);
+        super(gl, bufInfo, prog);
+        this.ptrs = ptrs.map((ptr) => {
+            const loc = this.gl.getAttribLocation(this.prog, ptr.name);
+            if (loc === -1) {
+                throw new Error(`Attribute ${ptr.name} not found in program`);
             }
             return {
-                attributeLocation,
-                size: pointer.size,
-                type: pointer.type || this.gl.FLOAT,
-                normalized: pointer.normalized || false,
-                stride: pointer.stride || 0,
-                offset: pointer.offset || 0,
+                loc,
+                size: ptr.size,
+                type: ptr.type || this.gl.FLOAT,
+                normalized: ptr.normalized || false,
+                stride: ptr.stride || 0,
+                offset: ptr.offset || 0,
             };
         });
         this.bind();
-        this.gl.bufferData(this.buffer_info.target, this.buffer_info.data, this.buffer_info.usage);
+        this.gl.bufferData(this.bufInfo.target, this.bufInfo.data, this.bufInfo.usage);
         this.unbind();
     }
 
+    /**
+     * Binds the VBO and enables vertex attribute pointers.
+     */
     public bind() {
-        this.gl.bindBuffer(this.buffer_info.target, this.buffer);
-        this.pointers.forEach((pointer) => {
-            this.gl.enableVertexAttribArray(pointer.attributeLocation);
+        this.gl.bindBuffer(this.bufInfo.target, this.buffer);
+        this.ptrs.forEach((ptr) => {
+            this.gl.enableVertexAttribArray(ptr.loc);
             this.gl.vertexAttribPointer(
-                pointer.attributeLocation,
-                pointer.size,
-                pointer.type,
-                pointer.normalized,
-                pointer.stride,
-                pointer.offset,
+                ptr.loc,
+                ptr.size,
+                ptr.type,
+                ptr.normalized,
+                ptr.stride,
+                ptr.offset,
             );
         });
     }
 
+    /**
+     * Unbinds the VBO and disables the vertex attributes.
+     */
     public unbind() {
-        this.pointers.forEach((pointer) => {
-            this.gl.disableVertexAttribArray(pointer.attributeLocation);
+        this.ptrs.forEach((ptr) => {
+            this.gl.disableVertexAttribArray(ptr.loc);
         });
-        this.gl.bindBuffer(this.buffer_info.target, null);
+        this.gl.bindBuffer(this.bufInfo.target, null);
     }
 }
 
+/**
+ * Represents a Vertex Array Object (VAO) in WebGL.
+ * A VAO is used to store VBOs and their associated vertex attribute pointers.
+ */
 class VAO {
     gl: WebGL2RenderingContext;
     vao: WebGLVertexArrayObject;
@@ -159,16 +218,22 @@ class VAO {
         this.vao = this.gl.createVertexArray() as WebGLVertexArrayObject;
     }
 
+    /**
+     * Binds the vertex array object.
+     */
     public bind() {
         this.gl.bindVertexArray(this.vao);
     }
     
+    /**
+     * Unbinds the vertex array object.
+     */
     public unbind() {
         this.gl.bindVertexArray(null);
     }
 }
 
-export {
+export { 
     Gluu,
     AttributeInfo,
     BufferInfo,
