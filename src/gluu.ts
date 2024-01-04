@@ -69,6 +69,21 @@ class Gluu {
     }
 
     /**
+     * Creates a new UBO (Uniform Buffer Object) using the provided WebGL program, uniform block information, and buffer information.
+     * @param prog The WebGL program to associate the UBO with.
+     * @param blockInfo The uniform block information object specifying the uniform block.
+     * @param bufInfo The buffer information object containing the data for the UBO.
+     * @returns The newly created UBO.
+     */
+    public makeUBO(
+        prog: WebGLProgram,
+        blockInfo: UniformBlockInfo,
+        bufInfo: BufferInfo,
+    ): UBO {
+        return new UBO(this.gl, prog, blockInfo, bufInfo);
+    }
+
+    /**
      * Resizes the canvas element to match the size of its parent container and updates the WebGL viewport accordingly.
      */
     public resizeToCanvas(): void {
@@ -106,10 +121,18 @@ interface VertexAttributePointer {
  * Represents information about a buffer.
  */
 interface BufferInfo {
-    data: Float32Array | Uint16Array;
+    data: ArrayBufferView;
     target: number;
     usage: number;
     stride?: number;
+}
+
+/**
+ * Represents information about a uniform block.
+ */
+interface UniformBlockInfo {
+    name: string;
+    binding: number;
 }
 
 /**
@@ -206,6 +229,64 @@ class VBO extends BufferObject {
 }
 
 /**
+ * Represents a Uniform Buffer Object (UBO) in WebGL.
+ * A UBO is used to store uniform data that can be efficiently accessed by the GPU.
+ */
+class UBO extends BufferObject {
+    blockInfo: UniformBlockInfo;
+    blockIndex: number;
+
+    constructor(
+        gl: WebGL2RenderingContext,
+        prog: WebGLProgram,
+        blockInfo: UniformBlockInfo,
+        bufInfo: BufferInfo,
+    ) {
+        super(gl, bufInfo, prog);
+        this.blockInfo = blockInfo;
+        this.blockIndex = this.gl.getUniformBlockIndex(this.prog, this.blockInfo.name);
+        if (this.blockIndex === -1) {
+            throw new Error(`Uniform block ${this.blockInfo.name} not found in program`);
+        }
+        this.bind();
+        this.gl.bufferData(this.bufInfo.target, this.bufInfo.data, this.bufInfo.usage);
+        this.gl.uniformBlockBinding(this.prog, this.blockIndex, this.blockInfo.binding);
+        this.gl.bindBufferBase(this.bufInfo.target, this.blockInfo.binding, this.buffer);
+        this.unbind();
+    }
+
+    /**
+     * Binds the UBO.
+     */
+    public bind() {
+        this.gl.bindBuffer(this.bufInfo.target, this.buffer);
+    }
+
+    /**
+     * Binds a range of the UBO.
+     */
+    public bindRange(offset: number, size: number) {
+        this.gl.bindBufferRange(this.bufInfo.target, this.blockInfo.binding, this.buffer, offset, size);
+    }
+
+    /**
+     * Unbinds the UBO.
+     */
+    public unbind() {
+        this.gl.bindBuffer(this.bufInfo.target, null);
+    }
+
+    /**
+     * Updates the data in the UBO.
+     */
+    public update(data: ArrayBufferView, offset: number = 0) {
+        this.bind();
+        this.gl.bufferSubData(this.bufInfo.target, offset, data);
+        this.unbind();
+    }
+}
+
+/**
  * Represents a Vertex Array Object (VAO) in WebGL.
  * A VAO is used to store VBOs and their associated vertex attribute pointers.
  */
@@ -237,4 +318,5 @@ export {
     Gluu,
     AttributeInfo,
     BufferInfo,
+    UniformBlockInfo,
 };

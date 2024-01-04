@@ -1,4 +1,4 @@
-import {Gluu, AttributeInfo, BufferInfo} from './gluu';
+import {Gluu, AttributeInfo, BufferInfo, UniformBlockInfo} from './gluu';
 
 // Create a Gluu context
 let canvas = document.getElementById("canvas") as HTMLCanvasElement;
@@ -20,10 +20,14 @@ precision highp float;
 
 in vec4 v_color;
 
+uniform uniformStruct {
+    vec4 u_color;
+};
+
 out vec4 outColor;
 
 void main() {
-    outColor = v_color;
+    outColor = v_color * u_color;
 }`;
 
 // Create a shader program from the vertex and fragment shaders
@@ -71,17 +75,43 @@ vbo.bind();
 // vao.unbind();
 // vbo.unbind();
 
+// Set the uniform struct
+const uboBlock: UniformBlockInfo = {
+    name: "uniformStruct",
+    binding: 0,
+};
+
+const uboBuffer: BufferInfo = {
+    data: new Float32Array([0.2, 0.8, 0.5, 1.0]),
+    target: ctx.gl.UNIFORM_BUFFER,
+    usage: ctx.gl.STATIC_DRAW,
+};
+
+const ubo = ctx.makeUBO(program, uboBlock, uboBuffer);
+
 // Pre-render stuff
 ctx.gl.clearColor(0.0, 0.0, 0.0, 1.0);
 ctx.gl.clear(ctx.gl.COLOR_BUFFER_BIT);
 ctx.resizeToCanvas();
+let tick = 0;
+let maxTick = Math.PI;
 render();
+
 
 // Render loop
 function render() {
     // Pre-draw stuff
     ctx.resizeToCanvas();
     ctx.gl.clear(ctx.gl.COLOR_BUFFER_BIT);
+
+    // Logic
+    tick = (tick + 0.005) % maxTick;
+
+    // Update the uniform struct
+    ubo.update(
+        new Float32Array([Math.sin(tick), Math.cos(tick), Math.tan(tick), 1.0]),
+        0 // offset
+    );
     
     // Draw stuff
     ctx.gl.useProgram(program);
