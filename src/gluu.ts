@@ -39,18 +39,9 @@ class Gluu {
     public makeVBO(
         program: WebGLProgram,
         pointers: AttributeInfo[],
-        buffer: BufferInfo,
+        buffer_info: BufferInfo,
     ): VBO {
-        return new VBO(this.gl, program, pointers, buffer);
-    }
-
-    public makeUBO(
-        program: WebGLProgram,
-        uniformBufferInfo: UniformBlockInfo,
-        uniformInfos: UniformBufferInfo[],
-        buffer: BufferInfo,
-    ): UBO {
-        return new UBO(this.gl, program, uniformBufferInfo, uniformInfos, buffer);
+        return new VBO(this.gl, program, pointers, buffer_info);
     }
 
     public makeVAO(): VAO {
@@ -86,45 +77,25 @@ interface BufferInfo {
     usage: number;
 }
 
-interface UniformBlockInfo {
-    blockName: string;
-    blockIndex: number;
-    blockBinding: number;
-}
-
-interface UniformBufferInfo {
-    buffer: WebGLBuffer;
-    uniformName: string;
-    uniformLocation: number;
-}
-
-class BufferObject {
+abstract class BufferObject {
     gl: WebGL2RenderingContext;
-    buffer: BufferInfo;
+    buffer: WebGLBuffer;
+    buffer_info: BufferInfo;
+    program: WebGLProgram;
 
     constructor(
         gl: WebGL2RenderingContext,
-        buffer: BufferInfo,
+        buffer_info: BufferInfo,
+        program: WebGLProgram,
     ) {
         this.gl = gl;
-        this.buffer = {
-            data: buffer.data,
-            target: buffer.target,
-            usage: buffer.usage,
-        };
+        this.buffer = this.gl.createBuffer() as WebGLBuffer;
+        this.buffer_info = buffer_info;
+        this.program = program;
     }
 
-    protected bind() {
-        this.gl.bindBuffer(this.buffer.target, this.buffer.data);
-    }
-
-    protected unbind() {
-        this.gl.bindBuffer(this.buffer.target, null);
-    }
-
-    protected bufferData() {
-        this.gl.bufferData(this.buffer.target, this.buffer.data, this.buffer.usage);
-    }
+    public abstract bind(): void;
+    public abstract unbind(): void;
 }
 
 class VBO extends BufferObject {
@@ -134,27 +105,30 @@ class VBO extends BufferObject {
         gl: WebGL2RenderingContext,
         program: WebGLProgram,
         pointers: AttributeInfo[],
-        buffer: BufferInfo,
+        buffer_info: BufferInfo,
     ) {
-        super(gl, buffer);
+        super(gl, buffer_info, program);
         this.pointers = pointers.map((pointer) => {
-            const attributeLocation = gl.getAttribLocation(program, pointer.name);
+            const attributeLocation = this.gl.getAttribLocation(this.program, pointer.name);
             if (attributeLocation === -1) {
-                throw new Error(`Attribute ${pointer.name} not found`);
+                throw new Error(`Attribute ${pointer.name} does not exist`);
             }
             return {
                 attributeLocation,
                 size: pointer.size,
-                type: pointer.type || gl.FLOAT,
+                type: pointer.type || this.gl.FLOAT,
                 normalized: pointer.normalized || false,
                 stride: pointer.stride || 0,
                 offset: pointer.offset || 0,
             };
         });
+        this.bind();
+        this.gl.bufferData(this.buffer_info.target, this.buffer_info.data, this.buffer_info.usage);
+        this.unbind();
     }
 
     public bind() {
-        super.bind();
+        this.gl.bindBuffer(this.buffer_info.target, this.buffer);
         this.pointers.forEach((pointer) => {
             this.gl.enableVertexAttribArray(pointer.attributeLocation);
             this.gl.vertexAttribPointer(
@@ -168,58 +142,12 @@ class VBO extends BufferObject {
         });
     }
 
-    protected unbind() {
-        super.unbind();
+    public unbind() {
         this.pointers.forEach((pointer) => {
             this.gl.disableVertexAttribArray(pointer.attributeLocation);
         });
+        this.gl.bindBuffer(this.buffer_info.target, null);
     }
-
-    protected bufferData() {
-        super.bufferData();
-    }
-}
-
-class UBO extends BufferObject {
-    uniformBufferInfo: UniformBlockInfo;
-    program: WebGLProgram;
-    uniformInfos: UniformBufferInfo[];
-
-    constructor(
-        gl: WebGL2RenderingContext,
-        program: WebGLProgram,
-        uniformBufferInfo: UniformBlockInfo,
-        uniformInfos: UniformBufferInfo[],
-        buffer: BufferInfo,
-    ) {
-        super(gl, buffer);
-        this.program = program;
-        this.uniformBufferInfo = uniformBufferInfo;
-        this.uniformInfos = uniformInfos;
-    }
-
-    protected bind() {
-        super.bind();
-        this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, this.uniformBufferInfo.blockIndex, this.buffer.data);
-    }
-
-    protected unbind() {
-        super.unbind();
-        this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, this.uniformBufferInfo.blockIndex, null);
-    }
-
-    protected bufferData() {
-        super.bufferData();
-        const blockIndex = this.gl.getUniformBlockIndex(this.program, this.uniformBufferInfo.blockName);
-        this.gl.uniformBlockBinding(this.program, blockIndex, this.uniformBufferInfo.blockBinding);
-    }
-
-    setUniform(data: Float32Array, offset: number = 0) {
-        this.gl.bindBuffer(this.gl.UNIFORM_BUFFER, this.buffer.data);
-        this.gl.bufferSubData(this.gl.UNIFORM_BUFFER, offset * Float32Array.BYTES_PER_ELEMENT, data);
-        this.gl.bindBuffer(this.gl.UNIFORM_BUFFER, null);
-    }
-
 }
 
 class VAO {

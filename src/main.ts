@@ -22,27 +22,31 @@ void main() {
 const program = ctx.makeProgram(vertexShader, fragmentShader);
 
 const vao = ctx.makeVAO();
-
-const vertices = new Float32Array([
-    0.0, 0.5, 0.0,
-    -0.5, -0.5, 0.0,
-    0.5, -0.5, 0.0,
-]);
-
-const vbo = ctx.makeVBO(
-    program, 
-    [{
-        name: "position", 
-        size: 3
-    }], 
-    {
-        data: vertices, 
-        target: ctx.gl.ARRAY_BUFFER, 
-        usage: ctx.gl.STATIC_DRAW
-    });
-
-vbo.bind();
 vao.bind();
 
-ctx.clear();
+const vbo = ctx.makeVBO(program, [
+    {
+        name: "position",
+        size: 2,
+        type: ctx.gl.FLOAT,
+        normalized: false,
+        stride: 0,
+        offset: 0,
+    },
+], {
+    data: new Float32Array([
+        0.0, 0.5,
+        0.5, -0.5,
+        -0.5, -0.5,
+    ]),
+    target: ctx.gl.ARRAY_BUFFER,
+    usage: ctx.gl.STATIC_DRAW,
+});
+
+vbo.bind();
+vao.unbind();
+vbo.unbind();
+
+vao.bind();
+ctx.gl.useProgram(program);
 ctx.gl.drawArrays(ctx.gl.TRIANGLES, 0, 3);
