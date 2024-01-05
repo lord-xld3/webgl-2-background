@@ -1,3 +1,6 @@
+type TypedArray = Int8Array | Uint8Array | Int16Array | Uint16Array | 
+Int32Array | Uint32Array | Float32Array | Float64Array;
+
 /**
  * Represents a WebGL utility class for managing WebGL context, shaders, programs, and buffers.
  */
@@ -73,19 +76,21 @@ class Gluu {
      * @param prog The WebGL program to associate the UBO with.
      * @param blockInfo The uniform block information object specifying the uniform block.
      * @param data The data to store in the UBO.
+     * @param uniforms An object containing information about the uniforms in the uniform block.
      * @returns The newly created UBO.
      */
     public makeUBO(
         prog: WebGLProgram,
         blockInfo: UniformBlockInfo,
-        data: ArrayBufferView,
+        data: TypedArray,
+        uniforms: UniformInfo = {},
     ): UBO {
         const bufInfo: BufferInfo = {
             data,
             target: this.gl.UNIFORM_BUFFER,
             usage: this.gl.STATIC_DRAW,
         };
-        return new UBO(this.gl, prog, blockInfo, bufInfo);
+        return new UBO(this.gl, prog, blockInfo, bufInfo, uniforms);
     }
 
     /**
@@ -102,7 +107,7 @@ class Gluu {
  * Represents information about an attribute.
  */
 interface AttributeInfo {
-    name: string;
+    key: string;
     size: number;
     type?: number;
     normalized?: boolean;
@@ -126,9 +131,15 @@ interface VertexAttributePointer {
  * Represents information about a buffer.
  */
 interface BufferInfo {
-    data: ArrayBufferView;
+    data: TypedArray;
     target: number;
     usage: number;
+}
+
+/**
+ * Represents information about a vertex buffer.
+ */
+interface VertexBufferInfo extends BufferInfo {
     stride?: number;
 }
 
@@ -136,8 +147,17 @@ interface BufferInfo {
  * Represents information about a uniform block.
  */
 interface UniformBlockInfo {
-    name: string;
+    key: string;
     binding: number;
+}
+
+/**
+ * Represents information about a uniform.
+ */
+interface UniformInfo {
+    [key: string]: {
+        offset: number;
+    }
 }
 
 /**
@@ -182,13 +202,13 @@ class VBO extends BufferObject {
         gl: WebGL2RenderingContext,
         prog: WebGLProgram,
         ptrs: AttributeInfo[],
-        bufInfo: BufferInfo,
+        bufInfo: VertexBufferInfo,
     ) {
         super(gl, bufInfo, prog);
         this.ptrs = ptrs.map((ptr) => {
-            const loc = this.gl.getAttribLocation(this.prog, ptr.name);
+            const loc = this.gl.getAttribLocation(this.prog, ptr.key);
             if (loc === -1) {
-                throw new Error(`Attribute ${ptr.name} not found in program`);
+                throw new Error(`Attribute ${ptr.key} not found in program`);
             }
             return {
                 loc,
@@ -240,19 +260,22 @@ class VBO extends BufferObject {
 class UBO extends BufferObject {
     blockInfo: UniformBlockInfo;
     blockIndex: number;
+    uniforms: UniformInfo;
 
     constructor(
         gl: WebGL2RenderingContext,
         prog: WebGLProgram,
         blockInfo: UniformBlockInfo,
         bufInfo: BufferInfo,
+        uniforms: UniformInfo = {},
     ) {
         super(gl, bufInfo, prog);
         this.blockInfo = blockInfo;
-        this.blockIndex = this.gl.getUniformBlockIndex(this.prog, this.blockInfo.name);
+        this.blockIndex = this.gl.getUniformBlockIndex(this.prog, this.blockInfo.key);
         if (this.blockIndex === -1) {
-            throw new Error(`Uniform block ${this.blockInfo.name} not found in program`);
+            throw new Error(`Uniform block ${this.blockInfo.key} not found in program`);
         }
+        this.uniforms = uniforms;
         this.bind();
         this.gl.bufferData(this.bufInfo.target, this.bufInfo.data, this.bufInfo.usage);
         this.gl.uniformBlockBinding(this.prog, this.blockIndex, this.blockInfo.binding);
@@ -268,13 +291,6 @@ class UBO extends BufferObject {
     }
 
     /**
-     * Binds a range of the UBO.
-     */
-    public bindRange(offset: number, size: number) {
-        this.gl.bindBufferRange(this.bufInfo.target, this.blockInfo.binding, this.buffer, offset, size);
-    }
-
-    /**
      * Unbinds the UBO.
      */
     public unbind() {
@@ -282,11 +298,32 @@ class UBO extends BufferObject {
     }
 
     /**
+     * Binds a range of the buffer to the uniform block.
+     * 
+     * @param offset - The offset in bytes from the beginning of the buffer.
+     * @param size - The size in bytes of the range to bind.
+     */
+    public bindRange(offset: number, size: number) {
+        this.gl.bindBufferRange(this.bufInfo.target, this.blockInfo.binding, this.buffer, offset, size);
+    }
+
+    /**
+     * Sets the value of a uniform variable in the shader program.
+     * 
+     * @param uniform - The key of the uniform variable.
+     * @param data - The data to be set for the uniform variable.
+     */
+    public setUniform(uniform: string, data: TypedArray) {
+        const offset = this.uniforms[uniform].offset;
+        this.bufInfo.data.set(data, offset);
+    }
+
+    /**
      * Updates the data in the UBO.
      */
-    public update(data: ArrayBufferView, offset: number = 0) {
+    public update() {
         this.bind();
-        this.gl.bufferSubData(this.bufInfo.target, offset, data);
+        this.gl.bufferSubData(this.bufInfo.target, 0, this.bufInfo.data);
         this.unbind();
     }
 }
@@ -322,6 +359,7 @@ class VAO {
 export { 
     Gluu,
     AttributeInfo,
-    BufferInfo,
+    VertexBufferInfo,
     UniformBlockInfo,
+    UniformInfo,
 };

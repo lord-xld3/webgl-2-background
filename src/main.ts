@@ -1,4 +1,4 @@
-import {Gluu, AttributeInfo, BufferInfo, UniformBlockInfo} from './gluu';
+import {Gluu, AttributeInfo, VertexBufferInfo, UniformBlockInfo, UniformInfo} from './gluu';
 
 // Create a Gluu context
 let canvas = document.getElementById("canvas") as HTMLCanvasElement;
@@ -42,7 +42,7 @@ vao.bind();
 
 // A BufferInfo object contains the data, target, usage, and stride of a buffer.
 // stride is the number of bytes between two of the same attribute.
-const triangleBuffer: BufferInfo = {
+const triangleBuffer: VertexBufferInfo = {
     data: new Float32Array([
         0.0, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0,
         0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0,
@@ -55,13 +55,13 @@ const triangleBuffer: BufferInfo = {
 
 // Keeping the pointers separate lets us reuse pointers for different buffers
 const positionPointer: AttributeInfo = {
-    name: "a_position",
+    key: "a_position",
     size: 3,
     stride: triangleBuffer.stride,
 };
 
 const colorPointer: AttributeInfo = {
-    name: "a_color",
+    key: "a_color",
     size: 4,
     offset: 3 * Float32Array.BYTES_PER_ELEMENT,
     stride: triangleBuffer.stride,
@@ -78,12 +78,17 @@ vbo.bind();
 
 // Set the uniform struct
 const uboBlock: UniformBlockInfo = {
-    name: "uniformStruct",
+    key: "uniformStruct",
     binding: 0,
 };
 
 const uboBuffer = new Float32Array([0.2, 0.8, 0.5, 1.0])
-const ubo = ctx.makeUBO(program, uboBlock, uboBuffer);
+const uInfo: UniformInfo = {
+    "u_color": {
+        offset: 0,
+    }
+}
+const ubo = ctx.makeUBO(program, uboBlock, uboBuffer, uInfo);
 
 // Pre-render stuff
 gl.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -104,7 +109,11 @@ function render() {
     tick = (tick + 0.005) % maxTick;
 
     // Update the uniform struct
-    ubo.update(new Float32Array([Math.sin(tick), Math.cos(tick), Math.tan(tick), 1.0]));
+    ubo.setUniform(
+        "u_color", 
+        new Float32Array([Math.sin(tick), Math.cos(tick), 0.5, 1.0])
+    );
+    ubo.update();
     
     // Draw stuff
     gl.useProgram(program);
