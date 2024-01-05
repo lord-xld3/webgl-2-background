@@ -23,12 +23,13 @@ in vec4 v_color;
 
 uniform uniformStruct {
     vec4 u_color;
+    vec4 u_ambient;
 };
 
 out vec4 outColor;
 
 void main() {
-    outColor = v_color * u_color;
+    outColor = (v_color * u_color) + u_ambient;
 }`;
 
 // Create a shader program from the vertex and fragment shaders
@@ -82,11 +83,17 @@ const uboBlock: UniformBlockInfo = {
     binding: 0,
 };
 
-const uboBuffer = new Float32Array([0.2, 0.8, 0.5, 1.0])
+const uboBuffer = new Float32Array([
+    0.2, 0.8, 0.5, 1.0,
+    0.2, 0.8, 0.5, 1.0,
+]);
 const uInfo: UniformInfo = {
     "u_color": {
         offset: 0,
-    }
+    },
+    "u_ambient": {
+        offset: 4,
+    },
 }
 const ubo = ctx.makeUBO(program, uboBlock, uboBuffer, uInfo);
 
@@ -111,7 +118,11 @@ function render() {
     // Update the uniform struct
     ubo.setUniform(
         "u_color", 
-        new Float32Array([Math.sin(tick), Math.cos(tick), 0.5, 1.0])
+        new Float32Array([Math.sin(tick), 0.2, 0.5, 1.0])
+    );
+    ubo.setUniform(
+        "u_ambient", 
+        new Float32Array([0.2, Math.sin(tick), 0.5, 1.0])
     );
     ubo.update();
     
