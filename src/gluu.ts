@@ -101,6 +101,19 @@ class Gluu {
         this.canvas.height = this.canvas.clientHeight;
         this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     }
+
+    /**
+     * Creates a new texture using the provided texture information and image data.
+     * @param texInfo The texture information object specifying the texture.
+     * @param img The image data to store in the texture.
+     * @returns The newly created texture.
+     */
+    public makeTexture(
+        texInfo: TextureInfo,
+        img: HTMLImageElement,
+    ): Texture {
+        return new Texture(this.gl, texInfo, img);
+    }
 }
 
 /**
@@ -319,6 +332,25 @@ class UBO extends BufferObject {
     }
 
     /**
+     * Sets the values of multiple uniform variables in the shader program.
+     * 
+     * @param uniforms - An object containing the uniform names and their buffer data.
+     */
+    public setUniforms(uniforms: {[key: string]: TypedArray}) {
+        for (const uniform in uniforms) {
+            this.setUniform(uniform, uniforms[uniform]);
+        }
+    }
+
+    /**
+     * Sets the buffer data for the UBO.
+     * @param data - The data to be set for the UBO.
+     */
+    public setBuffer(data: TypedArray) {
+        this.bufInfo.data.set(data);
+    }
+
+    /**
      * Updates the data in the UBO.
      */
     public update() {
@@ -356,10 +388,112 @@ class VAO {
     }
 }
 
+/**
+ * Represents information about a texture.
+ */
+interface TextureInfo {
+    target?: number;
+    mipLevel?: number;
+    internalFormat?: number;
+    format?: number;
+    type?: number;
+}
+
+/**
+ * Represents a texture in WebGL.
+ */
+class Texture {
+    gl: WebGL2RenderingContext;
+    texture: WebGLTexture;
+    texInfo: TextureInfo;
+
+    constructor(
+        gl: WebGL2RenderingContext,
+        texInfo: TextureInfo,
+        img: HTMLImageElement,
+    ) {
+        this.gl = gl;
+        this.texture = this.gl.createTexture() as WebGLTexture;
+        this.texInfo = {
+            target: texInfo.target || this.gl.TEXTURE_2D,
+            mipLevel: texInfo.mipLevel || 0,
+            internalFormat: texInfo.internalFormat || this.gl.RGBA,
+            format: texInfo.format || this.gl.RGBA,
+            type: texInfo.type || this.gl.UNSIGNED_BYTE,
+        }
+        this.setData(img);
+        this.generateMipmap();
+    }
+
+    /**
+     * Binds the texture.
+     */
+    public bind() {
+        this.gl.bindTexture(this.texInfo.target, this.texture);
+    }
+
+    /**
+     * Unbinds the texture.
+     */
+    public unbind() {
+        this.gl.bindTexture(this.texInfo.target, null);
+    }
+
+    /**
+     * Sets the texture parameters.
+     * @param params - An object containing the texture parameters.
+     */
+    public setParams(params: {[key: string]: number}) {
+        this.bind();
+        for (const param in params) {
+            this.gl.texParameteri(
+                this.texInfo.target, 
+                this.gl[param as keyof WebGL2RenderingContext] as number, 
+                params[param]
+            );
+        }
+        this.unbind();
+    }
+
+    /**
+     * Generates mipmaps for the texture.
+     */
+    public generateMipmap() {
+        this.bind();
+        this.gl.generateMipmap(this.texInfo.target);
+        this.unbind();
+    }
+
+    /**
+     * Sets the texture data.
+     * @param img - The image data to set for the texture.
+     */
+    public setData(img: HTMLImageElement) {
+        this.bind();
+        this.gl.texImage2D(
+            this.texInfo.target,
+            this.texInfo.mipLevel,
+            this.texInfo.internalFormat,
+            this.texInfo.format,
+            this.texInfo.type,
+            img,
+        );
+        this.unbind();
+    }
+
+    /**
+     * Sets active texture unit.
+     */
+    public setActiveTexture() {
+        this.gl.activeTexture(this.gl.TEXTURE0);
+    }
+}
+
 export { 
     Gluu,
     AttributeInfo,
     VertexBufferInfo,
     UniformBlockInfo,
     UniformInfo,
+    TextureInfo,
 };
