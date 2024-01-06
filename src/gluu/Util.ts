@@ -1,47 +1,91 @@
-import { Ctx } from "./Ctx";
+import { TypedArray } from "./Types";
 
 /**
  * Util has some essential methods.
  */
-export class Util extends Ctx{
-
-    private makeShader(
-        src: string,
-        type: number,
-    ): WebGLShader {
-        const shader = this.gl.createShader(type) as WebGLShader;
-        this.gl.shaderSource(shader, src);
-        this.gl.compileShader(shader);
-        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-            throw new Error(this.gl.getShaderInfoLog(shader) as string);
-        }
-        return shader;
+export function makeShader(
+    gl: WebGL2RenderingContext,
+    src: string,
+    type: number,
+): WebGLShader {
+    const shader = gl.createShader(type) as WebGLShader;
+    gl.shaderSource(shader, src);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        throw new Error(gl.getShaderInfoLog(shader) as string);
     }
+    return shader;
+}
 
-    /**
-     * Creates a WebGL program using the provided vertex and fragment shaders.
-     * @param vs The source code of the vertex shader.
-     * @param fs The source code of the fragment shader.
-     * @returns The created WebGL program.
-     */
-    public createProgram(vs: string, fs: string): WebGLProgram {
-        const prog = this.gl.createProgram() as WebGLProgram;
-        this.gl.attachShader(prog, this.makeShader(vs, this.gl.VERTEX_SHADER));
-        this.gl.attachShader(prog, this.makeShader(fs, this.gl.FRAGMENT_SHADER));
-        this.gl.linkProgram(prog);
-        if (!this.gl.getProgramParameter(prog, this.gl.LINK_STATUS)) {
-            throw new Error(this.gl.getProgramInfoLog(prog) as string);
-        }
-        return prog;
+/**
+ * Creates a WebGL program using the provided vertex and fragment shaders.
+ * @param gl The WebGL context.
+ * @param vs The source code of the vertex shader.
+ * @param fs The source code of the fragment shader.
+ * @returns The created WebGL program.
+ */
+export function createProgram(
+    gl: WebGL2RenderingContext, 
+    vs: string, 
+    fs: string
+): WebGLProgram {
+    const prog = gl.createProgram() as WebGLProgram;
+    gl.attachShader(prog, makeShader(gl, vs, gl.VERTEX_SHADER));
+    gl.attachShader(prog, makeShader(gl, fs, gl.FRAGMENT_SHADER));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+        throw new Error(gl.getProgramInfoLog(prog) as string);
     }
+    return prog;
+}
 
-    /**
-     * Resizes the canvas element.
-     */
-    public resizeCanvas(): void {
-        const canvas = this.canvas;
-        canvas.width = canvas.clientWidth;
-        canvas.height = canvas.clientHeight;
-        this.gl.viewport(0, 0, canvas.width, canvas.height);
-    }
+/**
+ * Resizes the canvas element.
+ * @param canvas The canvas element.
+ * @param gl The WebGL context.
+ */
+export function resizeCanvas(
+    gl: WebGL2RenderingContext,
+    canvas: HTMLCanvasElement
+): void {
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+}
+
+export function bindBuffer(
+    gl: WebGL2RenderingContext,
+    target: number,
+    buffer: WebGLBuffer | null
+): void {
+    gl.bindBuffer(target, buffer);
+}
+
+export function unbindBuffer(
+    gl: WebGL2RenderingContext,
+    target: number
+): void {
+    gl.bindBuffer(target, null);
+}
+
+export function bufferData(
+    gl: WebGL2RenderingContext,
+    target: number,
+    data: TypedArray,
+    usage: number
+): void {
+    gl.bufferData(target, data, usage);
+}
+
+export function createBuffer(
+    gl: WebGL2RenderingContext,
+    target: number,
+    data: TypedArray,
+    usage: number
+): WebGLBuffer {
+    const buffer = gl.createBuffer() as WebGLBuffer;
+    bindBuffer(gl, target, buffer);
+    bufferData(gl, target, data, usage);
+    unbindBuffer(gl, target);
+    return buffer;
 }

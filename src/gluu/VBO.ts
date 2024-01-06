@@ -1,13 +1,14 @@
 import { TypedArray } from "./Types";
+import { bindBuffer, unbindBuffer, createBuffer } from "./Util";
 
-interface VertexBufferInfo {
+export interface VertexBufferInfo {
     data: TypedArray;
     target: number;
     usage: number;
     stride?: number;
 }
 
-interface VertexAttributePointer {
+export interface VertexAttributePointer {
     loc: number;
     size: number;
     type: number;
@@ -16,7 +17,7 @@ interface VertexAttributePointer {
     offset: number;
 }
 
-interface AttributeInfo {
+export interface AttributeInfo {
     key: string;
     size: number;
     type?: number;
@@ -25,48 +26,53 @@ interface AttributeInfo {
     offset?: number;
 }
 
-/**
- * Represents a Vertex Buffer Object (VBO) in WebGL.
- * A VBO is used to store vertex data that can be efficiently accessed by the GPU.
- */
-export class VBO {
-    private ptrs: VertexAttributePointer[];
-    private buf: WebGLBuffer;
+export interface VBO {
+    buf_info: VertexBufferInfo;
+    ptrs: VertexAttributePointer[];
+    buf: WebGLBuffer;
+    bind: () => void;
+    unbind: () => void;
+}
 
-    constructor(
-        private gl: WebGL2RenderingContext,
-        prog: WebGLProgram,
-        private buf_info: VertexBufferInfo,
-        ptrs_info: AttributeInfo[],
-    ) {
-        this.buf = this.gl.createBuffer() as WebGLBuffer;
-        this.ptrs = ptrs_info.map((ptr) => {
-            const loc = this.gl.getAttribLocation(prog, ptr.key);
-            if (loc === -1) {
-                throw new Error(`Attribute ${ptr.key} not found in program`);
-            }
-            return {
-                loc,
-                size: ptr.size,
-                type: ptr.type || this.gl.FLOAT,
-                normalized: ptr.normalized || false,
-                stride: ptr.stride || 0,
-                offset: ptr.offset || 0,
-            };
-        });
-        this.bind();
-        this.gl.bufferData(this.buf_info.target, this.buf_info.data, this.buf_info.usage);
-        this.unbind();
-    }
+export function createVBO(
+    gl: WebGL2RenderingContext,
+    prog: WebGLProgram,
+    buf_info: VertexBufferInfo,
+    ptrs_info: AttributeInfo[]
+): VBO {
+    const ptrs: VertexAttributePointer[] = ptrs_info.map((ptr) => {
+        const loc = gl.getAttribLocation(prog, ptr.key);
+        if (loc === -1) {
+            throw new Error(`Attribute ${ptr.key} not found in program`);
+        }
+        return {
+            loc,
+            size: ptr.size,
+            type: ptr.type?? gl.FLOAT,
+            normalized: ptr.normalized?? false,
+            stride: ptr.stride?? 0,
+            offset: ptr.offset?? 0,
+        };
+    });
 
-    /**
-     * Binds the VBO and enables vertex attribute pointers.
-     */
-    public bind() {
-        this.gl.bindBuffer(this.buf_info.target, this.buf);
-        this.ptrs.forEach((ptr) => {
-            this.gl.enableVertexAttribArray(ptr.loc);
-            this.gl.vertexAttribPointer(
+    const buf = createBuffer(
+        gl, 
+        buf_info.target, 
+        buf_info.data, 
+        buf_info.usage
+    );
+
+    const vbo = {
+        buf_info,
+        ptrs,
+        buf,
+    };
+
+    function bind(): void {
+        bindBuffer(gl, vbo.buf_info.target, vbo.buf);
+        vbo.ptrs.forEach((ptr) => {
+            gl.enableVertexAttribArray(ptr.loc);
+            gl.vertexAttribPointer(
                 ptr.loc,
                 ptr.size,
                 ptr.type,
@@ -77,13 +83,18 @@ export class VBO {
         });
     }
 
-    /**
-     * Unbinds the VBO and disables the vertex attributes.
-     */
-    public unbind() {
-        this.ptrs.forEach((ptr) => {
-            this.gl.disableVertexAttribArray(ptr.loc);
+    function unbind(): void {
+        vbo.ptrs.forEach((ptr) => {
+            gl.disableVertexAttribArray(ptr.loc);
         });
-        this.gl.bindBuffer(this.buf_info.target, null);
+        unbindBuffer(gl, vbo.buf_info.target);
     }
+
+    return {
+        ptrs, 
+        buf, 
+        buf_info,
+        bind,
+        unbind
+    };
 }

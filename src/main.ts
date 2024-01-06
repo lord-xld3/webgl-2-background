@@ -1,9 +1,8 @@
-import { Util, VAO, VBO, SceneManager} from "./gluu/Gluu";
+import * as gluu from "./gluu/Gluu";
 
 // Create a Gluu context
-let canvas = document.getElementById("canvas") as HTMLCanvasElement;
-const ctx = new Util(canvas);
-const gl = ctx.gl;
+const canvas = document.getElementById("canvas") as HTMLCanvasElement;
+const gl = canvas.getContext("webgl2") as WebGL2RenderingContext;
 
 const vertexShader = `#version 300 es
 in vec4 a_position;
@@ -35,11 +34,11 @@ void main() {
 }`;
 
 // Create a shader program from the vertex and fragment shaders
-const program = ctx.createProgram(vertexShader, fragmentShader);
+const program = gluu.createProgram(gl, vertexShader, fragmentShader);
 
 // A Vertex Array Object (VAO) can hold multiple Vertex Buffer Objects (VBOs),
 // each with their own vertex attributes and buffers.
-const vao = new VAO(gl);
+const vao = gluu.createVAO(gl);
 vao.bind();
 
 // A BufferInfo object contains the data, target, usage, and stride of a buffer.
@@ -78,55 +77,61 @@ const uvPointer = {
 
 // Keeping the buffer and VBO separate allows us to 're-interpret' the buffer
 // with different vertex attribute pointers.
-const vbo = new VBO(gl, program, triangleBuffer, [positionPointer, colorPointer, uvPointer]);
+const vbo = gluu.createVBO(gl, program, triangleBuffer, [positionPointer, colorPointer, uvPointer]);
 
 // In this simple program we have one VAO and VBO so it doesn't need to be unbound
 vbo.bind();
 // vao.unbind();
 // vbo.unbind();
 
-const sceneManager = new SceneManager(gl);
-
-sceneManager.init({
+const scenes = gluu.initScene(gl, {
     "myScene": {
-        texture_infos: [{
-            src: "/img/myself.jpg",
-            params: {
-                [gl.TEXTURE_MIN_FILTER]: gl.LINEAR_MIPMAP_LINEAR,
-                [gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
+        texture_infos: [
+            {
+                src: "img/myself.jpg",
+                params: {
+                    [gl.TEXTURE_MIN_FILTER]: gl.LINEAR_MIPMAP_LINEAR,
+                    [gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
+                }
             },
-        }],
-        models: [{
-            mesh: [{
-                vao: vao,
-                drawFunc: () => {
-                    gl.drawArrays(gl.TRIANGLES, 0, 3);
+        ],
+        models: [
+            {
+                mesh: [
+                    {
+                        vao: vao,
+                        drawFunc: () => {
+                            gl.drawArrays(gl.TRIANGLES, 0, 3);
+                        },
+                    },
+                ],
+                material: {
+                    prog: program,
                 },
-            }],
-            material: {
-                prog: program,
             },
-        }],
+        ],
     },
-}).then(() => {
-    render();
 });
+
+scenes.then(() => {
+    gluu.loadScene(gl, "myScene")
+    render();
+}).catch((e) => console.error(e));
 
 // Pre-render stuff
 gl.clearColor(0.0, 0.0, 0.0, 1.0);
 gl.clear(gl.COLOR_BUFFER_BIT);
-ctx.resizeCanvas();
+gluu.resizeCanvas(gl, canvas);
 
 
 // Render loop
 function render() {
     // Pre-draw stuff
-    ctx.resizeCanvas();
+    gluu.resizeCanvas(gl, canvas);
     gl.clear(gl.COLOR_BUFFER_BIT);
     
     // Draw stuff
-    sceneManager.draw("myScene");
-    
+    gluu.drawScene(gl, "myScene");
     // Post-draw stuff
     requestAnimationFrame(render);
 }

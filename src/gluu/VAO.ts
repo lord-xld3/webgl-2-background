@@ -1,25 +1,42 @@
+import { TypedArray } from "./Types";
+
 /**
  * Represents a Vertex Array Object (VAO) in WebGL.
  * A VAO is used to store VBOs and their associated vertex attribute pointers.
  */
-export class VAO {
-    public vao: WebGLVertexArrayObject;
+export interface VAO {
+    vao: WebGLVertexArrayObject;
+    bind: () => void;
+    unbind: () => void;
+}
 
-    constructor(private gl: WebGL2RenderingContext) {
-        this.vao = this.gl.createVertexArray() as WebGLVertexArrayObject;
-    }
+/**
+ * Creates a Vertex Array Object (VAO) in WebGL.
+ * @param gl The WebGL context.
+ * @returns The created Vertex Array Object (VAO).
+ */
+export function createVAO(
+    gl: WebGL2RenderingContext
+): VAO {
+    const vao = gl.createVertexArray() as WebGLVertexArrayObject;
 
     /**
      * Binds the vertex array object.
      */
-    public bind() {
-        this.gl.bindVertexArray(this.vao);
+    function bind() {
+        gl.bindVertexArray(vao);
     }
 
     /**
      * Unbinds the vertex array object.
      */
-    public unbind() {
-        this.gl.bindVertexArray(null);
+    function unbind() {
+        gl.bindVertexArray(null);
     }
+
+    return {
+        vao,
+        bind,
+        unbind,
+    };
 }
