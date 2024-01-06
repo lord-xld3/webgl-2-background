@@ -1,8 +1,8 @@
-import {Gluu} from './gluu/gluu';
+import { Util, VAO, VBO, SceneManager} from "./gluu/Gluu";
 
 // Create a Gluu context
 let canvas = document.getElementById("canvas") as HTMLCanvasElement;
-const ctx = new Gluu(canvas);
+const ctx = new Util(canvas);
 const gl = ctx.gl;
 
 const vertexShader = `#version 300 es
@@ -35,13 +35,12 @@ void main() {
 }`;
 
 // Create a shader program from the vertex and fragment shaders
-const program = ctx.makeProgram(vertexShader, fragmentShader);
+const program = ctx.createProgram(vertexShader, fragmentShader);
 
 // A Vertex Array Object (VAO) can hold multiple Vertex Buffer Objects (VBOs),
 // each with their own vertex attributes and buffers.
-const vao = ctx.makeVAO();
+const vao = new VAO(gl);
 vao.bind();
-
 
 // A BufferInfo object contains the data, target, usage, and stride of a buffer.
 // stride is the number of bytes between two of the same attribute.
@@ -79,54 +78,54 @@ const uvPointer = {
 
 // Keeping the buffer and VBO separate allows us to 're-interpret' the buffer
 // with different vertex attribute pointers.
-const vbo = ctx.makeVBO(program, [positionPointer, colorPointer, uvPointer], triangleBuffer);
+const vbo = new VBO(gl, program, triangleBuffer, [positionPointer, colorPointer, uvPointer]);
 
 // In this simple program we have one VAO and VBO so it doesn't need to be unbound
 vbo.bind();
 // vao.unbind();
 // vbo.unbind();
 
-ctx.makeScenes({
+const sceneManager = new SceneManager(gl);
+
+sceneManager.init({
     "myScene": {
-        texture_infos: [
-            {
-                src: "/img/myself.jpg", 
-                params: {
-                    [gl.TEXTURE_MIN_FILTER]: gl.LINEAR_MIPMAP_LINEAR,
-                }
-            }
-        ],
-        models: [
-            {
-                mesh: [{
-                    vao: vao,
-                    drawFunc: () => gl.drawArrays(gl.TRIANGLES, 0, 3)
-                }],
-                material: {
-                    prog: program,
-                }
-            }
-        ],
+        texture_infos: [{
+            src: "/img/myself.jpg",
+            params: {
+                [gl.TEXTURE_MIN_FILTER]: gl.LINEAR_MIPMAP_LINEAR,
+                [gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
+            },
+        }],
+        models: [{
+            mesh: [{
+                vao: vao,
+                drawFunc: () => {
+                    gl.drawArrays(gl.TRIANGLES, 0, 3);
+                },
+            }],
+            material: {
+                prog: program,
+            },
+        }],
     },
 }).then(() => {
-    ctx.loadScene("myScene");
     render();
 });
 
 // Pre-render stuff
 gl.clearColor(0.0, 0.0, 0.0, 1.0);
 gl.clear(gl.COLOR_BUFFER_BIT);
-ctx.resizeToCanvas();
+ctx.resizeCanvas();
 
 
 // Render loop
 function render() {
     // Pre-draw stuff
-    ctx.resizeToCanvas();
+    ctx.resizeCanvas();
     gl.clear(gl.COLOR_BUFFER_BIT);
     
     // Draw stuff
-    ctx.drawScene("myScene");
+    sceneManager.draw("myScene");
     
     // Post-draw stuff
     requestAnimationFrame(render);

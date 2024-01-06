@@ -1,18 +1,95 @@
-import {
-    Scene,
-    SceneInfo,
-    Texture,
-} from "./Interfaces";
+import { VAO } from "./VAO";
+import { UniformInfo } from "./Interfaces";
+
+/**
+ * Texture information passed in to create a Texture.
+ */
+export interface TextureInfo {
+    src: string;
+    tex_unit?: number;
+    img3D?: boolean;
+    fmt?: {
+        target?: number;
+        mip_level?: number;
+        internal_format?: number;
+        format?: number;
+        type?: number;
+    };
+    params?: {
+        [key: number]: number;
+    };
+}
+
+/**
+ * A WebGL texture and its associated information.
+ */
+export interface Texture {
+    tex: WebGLTexture;
+    tex_unit: number;
+    img3D: boolean;
+    fmt: {
+        target: number;
+        mip_level: number;
+        internal_format: number;
+        format: number;
+        type: number;
+    };
+    params: {
+        [key: number]: number;
+    };
+}
+
+/**
+ * A shader program and its associated uniforms.
+ */
+export interface Material {
+    prog: WebGLProgram;
+    uniforms?: UniformInfo;
+}
+
+/**
+ * Geometry and its associated draw function.
+ */
+export interface Mesh {
+    vao: VAO;
+    drawFunc: () => void;
+}
+
+/**
+ * A group of meshes and their associated material.
+ */
+export interface Model {
+    mesh: Mesh[];
+    material: Material;
+}
+
+/**
+ * A scene and its associated textures and models.
+ */
+export interface Scene {
+    [key: string]: {
+        textures: Texture[];
+        models: Model[];
+    };
+}
+
+/**
+ * Information to create a scene.
+ */
+export interface SceneInfo {
+    [key: string]: {
+        texture_infos: TextureInfo[];
+        models: Model[];
+    };
+}
 
 /**
  * Represents a SceneManager that manages scenes and their textures.
  */
 export class SceneManager {
-    private gl: WebGL2RenderingContext;
     private scenes: Scene;
 
-    constructor(gl: WebGL2RenderingContext) {
-        this.gl = gl;
+    constructor(private gl: WebGL2RenderingContext) {
         this.scenes = {};
     }
 

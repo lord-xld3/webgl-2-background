@@ -1,38 +1,42 @@
-import { TypedArray } from "./gluu";
-import { BufferObject } from "./BufferObject";
-import { UniformBlockInfo, UniformInfo } from "./Interfaces";
-import { BufferInfo } from "./Interfaces";
+import { TypedArray } from "./Types";
+import { UniformInfo } from "./Interfaces";
+
+/**
+ * Represents information about a uniform block.
+ */
+export interface UniformBlockInfo {
+    key: string;
+    binding?: number;
+}
 
 /**
  * Represents a Uniform Buffer Object (UBO) in WebGL.
  * A UBO is used to store uniform data that can be efficiently accessed by the GPU.
  */
-export class UBO extends BufferObject {
-    block_info: UniformBlockInfo;
-    block_index: number;
-    uniforms: UniformInfo;
+export class UBO {
+    private block_index: number;
 
     constructor(
-        gl: WebGL2RenderingContext,
+        private gl: WebGL2RenderingContext,
         prog: WebGLProgram,
-        block_info: UniformBlockInfo,
-        buf_info: BufferInfo,
-        uniforms: UniformInfo = {}
+        private data: TypedArray,
+        private block_info: UniformBlockInfo,
+        private uniforms: UniformInfo,
     ) {
-        super(gl, prog, buf_info);
+        
         this.block_info = {
             key: block_info.key,
             binding: block_info.binding?? 0,
         }
-        this.block_index = this.gl.getUniformBlockIndex(this.prog, this.block_info.key);
+        this.block_index = this.gl.getUniformBlockIndex(prog, this.block_info.key);
         if (this.block_index === -1) {
             throw new Error(`Uniform block ${this.block_info.key} not found in program`);
         }
         this.uniforms = uniforms;
         this.bind();
-        this.gl.bufferData(this.buf_info.target, this.buf_info.data, this.buf_info.usage);
-        this.gl.uniformBlockBinding(this.prog, this.block_index, this.block_info.binding!);
-        this.gl.bindBufferBase(this.buf_info.target, this.block_info.binding!, this.buffer);
+        this.gl.bufferData(this.gl.UNIFORM_BUFFER, this.data, this.gl.DYNAMIC_DRAW);
+        this.gl.uniformBlockBinding(prog, this.block_index, this.block_info.binding!);
+        this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, this.block_info.binding!, this.data);
         this.unbind();
     }
 
@@ -40,14 +44,14 @@ export class UBO extends BufferObject {
      * Binds the UBO.
      */
     public bind() {
-        this.gl.bindBuffer(this.buf_info.target, this.buffer);
+        this.gl.bindBuffer(this.gl.UNIFORM_BUFFER, this.data);
     }
 
     /**
      * Unbinds the UBO.
      */
     public unbind() {
-        this.gl.bindBuffer(this.buf_info.target, null);
+        this.gl.bindBuffer(this.gl.UNIFORM_BUFFER, null);
     }
 
     /**
@@ -57,7 +61,10 @@ export class UBO extends BufferObject {
      * @param size - The size in bytes of the range to bind.
      */
     public bindRange(offset: number, size: number) {
-        this.gl.bindBufferRange(this.buf_info.target, this.block_info.binding!, this.buffer, offset, size);
+        this.gl.bindBufferRange(
+            this.gl.UNIFORM_BUFFER, this.block_info.binding!, 
+            this.data, offset, size
+        );
     }
 
     /**
@@ -68,7 +75,7 @@ export class UBO extends BufferObject {
      */
     public setUniform(uniform: string, data: TypedArray) {
         const offset = this.uniforms[uniform].offset;
-        this.buf_info.data.set(data, offset);
+        this.data.set(data, offset);
     }
 
     /**
@@ -88,7 +95,7 @@ export class UBO extends BufferObject {
      * @param offset - The offset in bytes from the beginning of the buffer.
      */
     public setBuffer(data: TypedArray, offset?: number) {
-        this.buf_info.data.set(data, offset);
+        this.data.set(data, offset);
     }
 
     /**
@@ -96,7 +103,7 @@ export class UBO extends BufferObject {
      */
     public update() {
         this.bind();
-        this.gl.bufferSubData(this.buf_info.target, 0, this.buf_info.data);
+        this.gl.bufferSubData(this.gl.UNIFORM_BUFFER, 0, this.data);
         this.unbind();
     }
 }

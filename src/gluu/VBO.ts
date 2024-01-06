@@ -1,22 +1,47 @@
-import { BufferObject } from "./BufferObject";
-import { VertexAttributePointer, AttributeInfo, VertexBufferInfo } from "./Interfaces";
+import { TypedArray } from "./Types";
+
+interface VertexBufferInfo {
+    data: TypedArray;
+    target: number;
+    usage: number;
+    stride?: number;
+}
+
+interface VertexAttributePointer {
+    loc: number;
+    size: number;
+    type: number;
+    normalized: boolean;
+    stride: number;
+    offset: number;
+}
+
+interface AttributeInfo {
+    key: string;
+    size: number;
+    type?: number;
+    normalized?: boolean;
+    stride?: number;
+    offset?: number;
+}
 
 /**
  * Represents a Vertex Buffer Object (VBO) in WebGL.
  * A VBO is used to store vertex data that can be efficiently accessed by the GPU.
  */
-export class VBO extends BufferObject {
-    ptrs: VertexAttributePointer[];
+export class VBO {
+    private ptrs: VertexAttributePointer[];
+    private buf: WebGLBuffer;
 
     constructor(
-        gl: WebGL2RenderingContext,
+        private gl: WebGL2RenderingContext,
         prog: WebGLProgram,
-        ptrs: AttributeInfo[],
-        buf_info: VertexBufferInfo
+        private buf_info: VertexBufferInfo,
+        ptrs_info: AttributeInfo[],
     ) {
-        super(gl, prog, buf_info);
-        this.ptrs = ptrs.map((ptr) => {
-            const loc = this.gl.getAttribLocation(this.prog, ptr.key);
+        this.buf = this.gl.createBuffer() as WebGLBuffer;
+        this.ptrs = ptrs_info.map((ptr) => {
+            const loc = this.gl.getAttribLocation(prog, ptr.key);
             if (loc === -1) {
                 throw new Error(`Attribute ${ptr.key} not found in program`);
             }
@@ -38,7 +63,7 @@ export class VBO extends BufferObject {
      * Binds the VBO and enables vertex attribute pointers.
      */
     public bind() {
-        this.gl.bindBuffer(this.buf_info.target, this.buffer);
+        this.gl.bindBuffer(this.buf_info.target, this.buf);
         this.ptrs.forEach((ptr) => {
             this.gl.enableVertexAttribArray(ptr.loc);
             this.gl.vertexAttribPointer(
