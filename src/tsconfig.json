@@ -6,6 +6,9 @@
         "noImplicitAny": true,
         "moduleResolution": "node"
     },
-    "include": ["**/*.ts"],
+    "include": [
+        "**/*.ts",
+        "**/gluu/**.ts"
+    ],
     "exclude": ["node_modules"]
 }
