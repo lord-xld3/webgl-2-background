@@ -112,7 +112,7 @@ ctx.makeScenes({
         ],
     },
 }).then(() => {
-    models = ctx.loadScene("myScene");
+    ctx.loadScene("myScene");
     render();
 });
 
@@ -129,7 +129,7 @@ function render() {
     gl.clear(gl.COLOR_BUFFER_BIT);
     
     // Draw stuff
-    ctx.draw(models);
+    ctx.drawScene("myScene");
     
     // Post-draw stuff
     requestAnimationFrame(render);

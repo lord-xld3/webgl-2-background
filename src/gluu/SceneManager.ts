@@ -86,26 +86,22 @@ export class SceneManager {
         throw new Error("Not implemented");
     }
 
-    public load(scene: string): Model[] {
-        // Load textures for scene
-        this.scenes[scene].textures.forEach((texture) => {
+    public load(scene: string): void {
+        const sc = this.scenes[scene];
+        for (let i = 0; i < sc.textures.length; i++) {
+            const texture = sc.textures[i];
             this.gl.activeTexture(this.gl.TEXTURE0 + texture.tex_unit);
             this.gl.bindTexture(texture.fmt.target, texture.tex);
-        });
-
-        // Load models for scene
-        return this.scenes[scene].models;
+        }
     }
 
-    public draw(models: Model[]): void {
-        for (let i = 0; i < models.length; i++) {
-            const model = models[i];
-            const mesh = model.mesh;
-            const prog = model.material.prog;
-            this.gl.useProgram(prog);
-            mesh.vao.bind();
-            mesh.drawFunc();
-            mesh.vao.unbind();
+    public draw(scene: string): void {
+        const sc = this.scenes[scene];
+        for (let i = 0; i < sc.models.length; i++) {
+            const model = sc.models[i];
+            this.gl.useProgram(model.material.prog);
+            model.mesh.vao.bind();
+            model.mesh.drawFunc();
         }
     }
 }

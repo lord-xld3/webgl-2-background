@@ -130,16 +130,16 @@ class Gluu {
      * Loads the textures for the specified scene.
      * @param scene The scene to load the textures for.
      */
-    public loadScene(scene: string): Model[] {
-        return this.scene_manager.load(scene);
+    public loadScene(scene: string): void {
+        this.scene_manager.load(scene);
     }
 
     /**
-     * Draws the specified models.
-     * @param models The models to draw.
+     * Draws the specified scene.
+     * @param scene The scene to draw.
      */
-    public draw(models: Model[]): void {
-        this.scene_manager.draw(models);
+    public drawScene(scene: string): void {
+        this.scene_manager.draw(scene);
     }
 }
 
