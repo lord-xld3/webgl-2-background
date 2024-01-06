@@ -3,8 +3,8 @@
  * A VAO is used to store VBOs and their associated vertex attribute pointers.
  */
 export class VAO {
-    gl: WebGL2RenderingContext;
-    vao: WebGLVertexArrayObject;
+    private gl: WebGL2RenderingContext;
+    public vao: WebGLVertexArrayObject;
 
     constructor(gl: WebGL2RenderingContext) {
         this.gl = gl;

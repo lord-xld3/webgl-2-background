@@ -1,12 +1,10 @@
+import { Model } from './gluu/Interfaces';
 import {Gluu} from './gluu/gluu';
 
 // Create a Gluu context
 let canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const ctx = new Gluu(canvas);
 const gl = ctx.gl;
-
-let maxtextures = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
-console.log(maxtextures);
 
 const vertexShader = `#version 300 es
 in vec4 a_position;
@@ -97,20 +95,35 @@ const textures = [
     },
 ];
 
-ctx.scene_manager.init({
+var models: Model[] = [];
+ctx.makeScenes({
     myScene: {
         texture_infos: textures,
-        models: [],
+        models: [
+            {
+                mesh: {
+                    vao: vao,
+                    drawInfo: {
+                        mode: gl.TRIANGLES,
+                        count: 3,
+                    }
+                },
+                material: {
+                    prog: program,
+                }
+            }
+        ],
     },
 }).then(() => {
-    ctx.loadTextures("myScene");
+    models = ctx.loadScene("myScene");
+    render();
 });
 
 // Pre-render stuff
 gl.clearColor(0.0, 0.0, 0.0, 1.0);
 gl.clear(gl.COLOR_BUFFER_BIT);
 ctx.resizeToCanvas();
-render();
+
 
 // Render loop
 function render() {
@@ -119,10 +132,15 @@ function render() {
     gl.clear(gl.COLOR_BUFFER_BIT);
     
     // Draw stuff
-    gl.useProgram(program);
-    // vao.bind();
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
-    // vao.unbind();
+    for (const model of models) {
+        const mesh = model.mesh;
+        const material = model.material;
+        const prog = material.prog;
+        gl.useProgram(prog);
+        mesh.vao.bind();
+        gl.drawArrays(mesh.drawInfo.mode, mesh.drawInfo.offset, mesh.drawInfo.count);
+        mesh.vao.unbind();
+    }
     
     // Post-draw stuff
     requestAnimationFrame(render);

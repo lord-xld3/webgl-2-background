@@ -101,14 +101,24 @@ export interface Texture {
  */
 interface Material {
     prog: WebGLProgram;
-    uniforms: UniformInfo;
+    uniforms?: UniformInfo;
+}
+
+interface Mesh {
+    vao: VAO;
+    drawInfo: {
+        mode: number;
+        count: number;
+        offset?: number;
+        indices?: number;
+    };
 }
 
 /**
  * A mesh and its associated material.
  */
-interface Model {
-    mesh: VAO;
+export interface Model {
+    mesh: Mesh;
     material: Material;
 }
 

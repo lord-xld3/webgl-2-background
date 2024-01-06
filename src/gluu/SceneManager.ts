@@ -2,6 +2,7 @@ import {
     Scene,
     SceneInfo,
     Texture,
+    Model,
 } from "./Interfaces";
 
 /**
@@ -85,11 +86,14 @@ export class SceneManager {
         throw new Error("Not implemented");
     }
 
-    public loadTextures(scene: string): void {
+    public load(scene: string): Model[] {
+        // Load textures for scene
         this.scenes[scene].textures.forEach((texture) => {
             this.gl.activeTexture(this.gl.TEXTURE0 + texture.tex_unit);
             this.gl.bindTexture(texture.fmt.target, texture.tex);
         });
-    }
 
+        // Load models for scene
+        return this.scenes[scene].models;
+    }
 }

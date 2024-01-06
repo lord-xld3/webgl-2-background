@@ -4,6 +4,7 @@ import {
     UniformBlockInfo, 
     UniformInfo, 
     SceneInfo,
+    Model,
 } from "./Interfaces";
 import { SceneManager } from "./SceneManager";
 import { UBO } from "./UBO";
@@ -19,7 +20,7 @@ Int32Array | Uint32Array | Float32Array | Float64Array;
 class Gluu {
     public canvas: HTMLCanvasElement;
     public gl: WebGL2RenderingContext;
-    public scene_manager: SceneManager;
+    private scene_manager: SceneManager;
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
@@ -118,7 +119,7 @@ class Gluu {
     }
 
     /**
-     * Creates a new SceneManager using the provided scenes.
+     * Initializes the SceneManager with the provided scenes.
      * @param scenes The scenes to use in the SceneManager.
      */
     public async makeScenes(scenes: SceneInfo): Promise<void> {
@@ -129,8 +130,8 @@ class Gluu {
      * Loads the textures for the specified scene.
      * @param scene The scene to load the textures for.
      */
-    public loadTextures(scene: string): void {
-        this.scene_manager.loadTextures(scene);
+    public loadScene(scene: string): Model[] {
+        return this.scene_manager.load(scene);
     }
 }
 
