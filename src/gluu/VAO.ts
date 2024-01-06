@@ -20,23 +20,9 @@ export function createVAO(
 ): VAO {
     const vao = gl.createVertexArray() as WebGLVertexArrayObject;
 
-    /**
-     * Binds the vertex array object.
-     */
-    function bind() {
-        gl.bindVertexArray(vao);
-    }
-
-    /**
-     * Unbinds the vertex array object.
-     */
-    function unbind() {
-        gl.bindVertexArray(null);
-    }
-
     return {
         vao,
-        bind,
-        unbind,
+        bind: () => gl.bindVertexArray(vao),
+        unbind: () => gl.bindVertexArray(null),
     };
 }
