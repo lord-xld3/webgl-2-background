@@ -4,7 +4,6 @@ import {
     UniformBlockInfo, 
     UniformInfo, 
     SceneInfo,
-    Model,
 } from "./Interfaces";
 import { SceneManager } from "./SceneManager";
 import { UBO } from "./UBO";

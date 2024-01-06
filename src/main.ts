@@ -1,4 +1,3 @@
-import { Model } from './gluu/Interfaces';
 import {Gluu} from './gluu/gluu';
 
 // Create a Gluu context
@@ -87,24 +86,22 @@ vbo.bind();
 // vao.unbind();
 // vbo.unbind();
 
-// Set the texture
-const textures = [
-    {
-        key: "myTexture",
-        src: "/img/myself.jpg",
-    },
-];
-
-var models: Model[] = [];
 ctx.makeScenes({
-    myScene: {
-        texture_infos: textures,
+    "myScene": {
+        texture_infos: [
+            {
+                src: "/img/myself.jpg", 
+                params: {
+                    [gl.TEXTURE_MIN_FILTER]: gl.LINEAR_MIPMAP_LINEAR,
+                }
+            }
+        ],
         models: [
             {
-                mesh: {
+                mesh: [{
                     vao: vao,
                     drawFunc: () => gl.drawArrays(gl.TRIANGLES, 0, 3)
-                },
+                }],
                 material: {
                     prog: program,
                 }

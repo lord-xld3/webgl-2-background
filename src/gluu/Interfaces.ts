@@ -104,16 +104,19 @@ interface Material {
     uniforms?: UniformInfo;
 }
 
+/**
+ * Geometry and its associated draw function.
+ */
 interface Mesh {
     vao: VAO;
     drawFunc: () => void;
 }
 
 /**
- * A mesh and its associated material.
+ * A group of meshes and their associated material.
  */
 export interface Model {
-    mesh: Mesh;
+    mesh: Mesh[];
     material: Material;
 }
 

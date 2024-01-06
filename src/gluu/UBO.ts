@@ -22,8 +22,8 @@ export class UBO extends BufferObject {
         super(gl, prog, buf_info);
         this.block_info = {
             key: block_info.key,
-            binding: block_info.binding ? block_info.binding : 0,
-        };
+            binding: block_info.binding?? 0,
+        }
         this.block_index = this.gl.getUniformBlockIndex(this.prog, this.block_info.key);
         if (this.block_index === -1) {
             throw new Error(`Uniform block ${this.block_info.key} not found in program`);
@@ -31,8 +31,8 @@ export class UBO extends BufferObject {
         this.uniforms = uniforms;
         this.bind();
         this.gl.bufferData(this.buf_info.target, this.buf_info.data, this.buf_info.usage);
-        this.gl.uniformBlockBinding(this.prog, this.block_index, this.block_info.binding);
-        this.gl.bindBufferBase(this.buf_info.target, this.block_info.binding, this.buffer);
+        this.gl.uniformBlockBinding(this.prog, this.block_index, this.block_info.binding!);
+        this.gl.bindBufferBase(this.buf_info.target, this.block_info.binding!, this.buffer);
         this.unbind();
     }
 
@@ -57,7 +57,7 @@ export class UBO extends BufferObject {
      * @param size - The size in bytes of the range to bind.
      */
     public bindRange(offset: number, size: number) {
-        this.gl.bindBufferRange(this.buf_info.target, this.block_info.binding, this.buffer, offset, size);
+        this.gl.bindBufferRange(this.buf_info.target, this.block_info.binding!, this.buffer, offset, size);
     }
 
     /**

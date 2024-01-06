@@ -2,7 +2,6 @@ import {
     Scene,
     SceneInfo,
     Texture,
-    Model,
 } from "./Interfaces";
 
 /**
@@ -75,8 +74,8 @@ export class SceneManager {
         for (const param in texture.params) {
             this.gl.texParameteri(
                 texture.fmt.target,
-                this.gl[param as keyof WebGL2RenderingContext] as number,
-                texture.params[param]
+                param as unknown as number,
+                texture.params[param as unknown as number]
             );
         }
     }
@@ -86,22 +85,31 @@ export class SceneManager {
         throw new Error("Not implemented");
     }
 
+    /**
+     * Loads textures for the specified scene.
+     * @param scene - The scene to load.
+     */
     public load(scene: string): void {
         const sc = this.scenes[scene];
-        for (let i = 0; i < sc.textures.length; i++) {
-            const texture = sc.textures[i];
-            this.gl.activeTexture(this.gl.TEXTURE0 + texture.tex_unit);
-            this.gl.bindTexture(texture.fmt.target, texture.tex);
+        for (const tex of sc.textures) {
+            this.gl.activeTexture(this.gl.TEXTURE0 + tex.tex_unit);
+            this.gl.bindTexture(tex.fmt.target, tex.tex);
         }
     }
 
+    /**
+     * Draws the specified scene.
+     * @param scene - The scene to draw.
+     */
     public draw(scene: string): void {
         const sc = this.scenes[scene];
-        for (let i = 0; i < sc.models.length; i++) {
-            const model = sc.models[i];
+        for (const model of sc.models) {
             this.gl.useProgram(model.material.prog);
-            model.mesh.vao.bind();
-            model.mesh.drawFunc();
+            for (const mesh of model.mesh) {
+                mesh.vao.bind();
+                mesh.drawFunc();
+                mesh.vao.unbind();
+            }
         }
     }
 }

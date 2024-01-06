@@ -15,8 +15,8 @@ export abstract class BufferObject {
         buf_info?: BufferInfo
     ) {
         this.gl = gl;
-        this.prog = prog;
-        this.buf_info = buf_info;
+        this.prog = prog as WebGLProgram;
+        this.buf_info = buf_info as BufferInfo;
         this.buffer = this.gl.createBuffer() as WebGLBuffer;
     }
 
