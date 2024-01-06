@@ -1,9 +1,19 @@
-import { TypedArray } from "./Types";
-
 /**
  * Util has some essential methods.
  */
-export function makeShader(
+
+export function init(
+    canvas: HTMLCanvasElement
+): WebGL2RenderingContext {
+    const gl = canvas.getContext("webgl2") as WebGL2RenderingContext;
+    if (!gl) {
+        throw new Error("WebGL2 not supported");
+    }
+    return gl;
+}
+
+
+function makeShader(
     gl: WebGL2RenderingContext,
     src: string,
     type: number,

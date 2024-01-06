@@ -2,7 +2,7 @@ import * as gluu from "./gluu/Gluu";
 
 // Create a Gluu context
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
-const gl = canvas.getContext("webgl2") as WebGL2RenderingContext;
+const gl = gluu.init(canvas);
 
 const vertexShader = `#version 300 es
 in vec4 a_position;
@@ -51,7 +51,7 @@ const triangleBuffer = {
     ]),
     target: gl.ARRAY_BUFFER,
     usage: gl.STATIC_DRAW,
-    stride: 9 * Float32Array.BYTES_PER_ELEMENT,
+    stride: 9 * 4,
 };
 
 // Keeping the pointers separate lets us reuse pointers for different buffers
@@ -64,14 +64,14 @@ const positionPointer = {
 const colorPointer = {
     key: "a_color",
     size: 4,
-    offset: 3 * Float32Array.BYTES_PER_ELEMENT,
+    offset: 3 * 4,
     stride: triangleBuffer.stride,
 };
 
 const uvPointer = {
     key: "a_uv",
     size: 2,
-    offset: 7 * Float32Array.BYTES_PER_ELEMENT,
+    offset: 7 * 4,
     stride: triangleBuffer.stride,
 };
 
