@@ -133,6 +133,14 @@ class Gluu {
     public loadScene(scene: string): Model[] {
         return this.scene_manager.load(scene);
     }
+
+    /**
+     * Draws the specified models.
+     * @param models The models to draw.
+     */
+    public draw(models: Model[]): void {
+        this.scene_manager.draw(models);
+    }
 }
 
 export {Gluu};

@@ -96,4 +96,16 @@ export class SceneManager {
         // Load models for scene
         return this.scenes[scene].models;
     }
+
+    public draw(models: Model[]): void {
+        for (let i = 0; i < models.length; i++) {
+            const model = models[i];
+            const mesh = model.mesh;
+            const prog = model.material.prog;
+            this.gl.useProgram(prog);
+            mesh.vao.bind();
+            mesh.drawFunc();
+            mesh.vao.unbind();
+        }
+    }
 }

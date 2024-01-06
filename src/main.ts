@@ -103,10 +103,7 @@ ctx.makeScenes({
             {
                 mesh: {
                     vao: vao,
-                    drawInfo: {
-                        mode: gl.TRIANGLES,
-                        count: 3,
-                    }
+                    drawFunc: () => gl.drawArrays(gl.TRIANGLES, 0, 3)
                 },
                 material: {
                     prog: program,
@@ -132,15 +129,7 @@ function render() {
     gl.clear(gl.COLOR_BUFFER_BIT);
     
     // Draw stuff
-    for (const model of models) {
-        const mesh = model.mesh;
-        const material = model.material;
-        const prog = material.prog;
-        gl.useProgram(prog);
-        mesh.vao.bind();
-        gl.drawArrays(mesh.drawInfo.mode, mesh.drawInfo.offset, mesh.drawInfo.count);
-        mesh.vao.unbind();
-    }
+    ctx.draw(models);
     
     // Post-draw stuff
     requestAnimationFrame(render);

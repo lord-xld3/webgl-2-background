@@ -106,12 +106,7 @@ interface Material {
 
 interface Mesh {
     vao: VAO;
-    drawInfo: {
-        mode: number;
-        count: number;
-        offset?: number;
-        indices?: number;
-    };
+    drawFunc: () => void;
 }
 
 /**
