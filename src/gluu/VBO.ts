@@ -1,5 +1,4 @@
 import { TypedArray } from "./Types";
-import { bindBuffer, unbindBuffer, createBuffer } from "./Util";
 
 export interface VertexBufferInfo {
     data: TypedArray;
@@ -55,12 +54,9 @@ export function createVBO(
         };
     });
 
-    const buf = createBuffer(
-        gl, 
-        buf_info.target, 
-        buf_info.data, 
-        buf_info.usage
-    );
+    const buf = gl.createBuffer() as WebGLBuffer;
+    gl.bindBuffer(buf_info.target, buf);
+    gl.bufferData(buf_info.target, buf_info.data, buf_info.usage);
 
     const vbo = {
         buf_info,
@@ -68,33 +64,27 @@ export function createVBO(
         buf,
     };
 
-    function bind(): void {
-        bindBuffer(gl, vbo.buf_info.target, vbo.buf);
-        vbo.ptrs.forEach((ptr) => {
-            gl.enableVertexAttribArray(ptr.loc);
-            gl.vertexAttribPointer(
-                ptr.loc,
-                ptr.size,
-                ptr.type,
-                ptr.normalized,
-                ptr.stride,
-                ptr.offset
-            );
-        });
-    }
-
-    function unbind(): void {
-        vbo.ptrs.forEach((ptr) => {
-            gl.disableVertexAttribArray(ptr.loc);
-        });
-        unbindBuffer(gl, vbo.buf_info.target);
-    }
-
     return {
-        ptrs, 
-        buf, 
-        buf_info,
-        bind,
-        unbind
+        ...vbo,
+        bind: () => {
+            gl.bindBuffer(vbo.buf_info.target, vbo.buf);
+            vbo.ptrs.forEach((ptr) => {
+                gl.enableVertexAttribArray(ptr.loc);
+                gl.vertexAttribPointer(
+                    ptr.loc,
+                    ptr.size,
+                    ptr.type,
+                    ptr.normalized,
+                    ptr.stride,
+                    ptr.offset
+                );
+            });
+        },
+        unbind: () => {
+            vbo.ptrs.forEach((ptr) => {
+                gl.disableVertexAttribArray(ptr.loc);
+            });
+            gl.bindBuffer(vbo.buf_info.target, null);
+        },
     };
 }
