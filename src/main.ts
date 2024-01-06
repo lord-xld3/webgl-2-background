@@ -34,11 +34,11 @@ void main() {
 }`;
 
 // Create a shader program from the vertex and fragment shaders
-const program = gluu.createProgram(gl, vertexShader, fragmentShader);
+const program = gluu.createProgram(vertexShader, fragmentShader);
 
 // A Vertex Array Object (VAO) can hold multiple Vertex Buffer Objects (VBOs),
 // each with their own vertex attributes and buffers.
-const vao = gluu.createVAO(gl);
+const vao = gluu.createVAO();
 vao.bind();
 
 // A BufferInfo object contains the data, target, usage, and stride of a buffer.
@@ -77,14 +77,14 @@ const uvPointer = {
 
 // Keeping the buffer and VBO separate allows us to 're-interpret' the buffer
 // with different vertex attribute pointers.
-const vbo = gluu.createVBO(gl, program, triangleBuffer, [positionPointer, colorPointer, uvPointer]);
+const vbo = gluu.createVBO(program, triangleBuffer, [positionPointer, colorPointer, uvPointer]);
 
 // In this simple program we have one VAO and VBO so it doesn't need to be unbound
 vbo.bind();
 // vao.unbind();
 // vbo.unbind();
 
-const scenes = gluu.initScene(gl, {
+const scenes = gluu.initScene({
     "myScene": {
         texture_infos: [
             {
@@ -114,24 +114,24 @@ const scenes = gluu.initScene(gl, {
 });
 
 scenes.then(() => {
-    gluu.loadScene(gl, "myScene")
+    gluu.loadScene("myScene")
     render();
 }).catch((e) => console.error(e));
 
 // Pre-render stuff
 gl.clearColor(0.0, 0.0, 0.0, 1.0);
 gl.clear(gl.COLOR_BUFFER_BIT);
-gluu.resizeCanvas(gl, canvas);
+gluu.resize();
 
 
 // Render loop
 function render() {
     // Pre-draw stuff
-    gluu.resizeCanvas(gl, canvas);
+    gluu.resize();
     gl.clear(gl.COLOR_BUFFER_BIT);
     
     // Draw stuff
-    gluu.drawScene(gl, "myScene");
+    gluu.draw("myScene");
     // Post-draw stuff
     requestAnimationFrame(render);
 }

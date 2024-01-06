@@ -1,3 +1,4 @@
+import { gl } from "./Util";
 import { VAO } from "./VAO";
 import { UniformInfo } from "./Interfaces";
 
@@ -63,7 +64,7 @@ export interface SceneInfo {
 
 let scenes: Scene = {};
 
-export async function initScene(gl: WebGL2RenderingContext, scene_info: SceneInfo): Promise<void> {
+export async function initScene(scene_info: SceneInfo): Promise<void> {
     const texturePromises = Object.entries(scene_info).map(async ([k, v]) => {
         const texturePromises = v.texture_infos.map(async (tex, i) => {
             const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -87,7 +88,7 @@ export async function initScene(gl: WebGL2RenderingContext, scene_info: SceneInf
                 params: tex.params ?? {},
             };
 
-            texture.img3D ? image3D(gl, texture, img) : image2D(gl, texture, img);
+            texture.img3D ? image3D(texture, img) : image2D(texture, img);
             return texture;
         });
 
@@ -102,7 +103,7 @@ export async function initScene(gl: WebGL2RenderingContext, scene_info: SceneInf
 
 
 
-function image2D(gl: WebGL2RenderingContext, texture: Texture, img: HTMLImageElement) {
+function image2D(texture: Texture, img: HTMLImageElement) {
     gl.activeTexture(gl.TEXTURE0 + texture.tex_unit);
     gl.bindTexture(texture.fmt.target, texture.tex);
     gl.texImage2D(
@@ -123,19 +124,27 @@ function image2D(gl: WebGL2RenderingContext, texture: Texture, img: HTMLImageEle
     }
 };
 
-function image3D(gl: WebGL2RenderingContext, texture: Texture, img: HTMLImageElement) {
+function image3D(texture: Texture, img: HTMLImageElement) {
     // TODO: Implement image3D
     throw new Error("Not implemented");
 };
 
-export function loadScene(gl: WebGL2RenderingContext, scene: string): void {
+/**
+ * Loads textures for a scene.
+ * @param scene - The name of the scene to load.
+ */
+export function loadScene(scene: string): void {
     scenes[scene].textures.forEach((texture) => {
         gl.activeTexture(gl.TEXTURE0 + texture.tex_unit);
         gl.bindTexture(texture.fmt.target, texture.tex);
     });
 }
 
-export function drawScene(gl: WebGL2RenderingContext, scene: string): void {
+/**
+ * Draws a scene.
+ * @param scene - The name of the scene to draw.
+ */
+export function draw(scene: string): void {
     scenes[scene].models.forEach((model) => {
         gl.useProgram(model.material.prog);
         model.mesh.forEach((mesh) => {

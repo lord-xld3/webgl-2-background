@@ -1,3 +1,4 @@
+import { gl } from "./Util";
 import { TypedArray } from "./Types";
 import { UniformInfo } from "./Interfaces";
 
@@ -25,7 +26,6 @@ export interface UBO {
 }
 
 export function createUBO(
-    gl: WebGL2RenderingContext,
     prog: WebGLProgram,
     data: TypedArray,
     blockInfo: UniformBlockInfo,

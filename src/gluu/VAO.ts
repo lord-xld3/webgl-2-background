@@ -1,3 +1,4 @@
+import { gl } from "./Util";
 import { TypedArray } from "./Types";
 
 /**
@@ -12,12 +13,9 @@ export interface VAO {
 
 /**
  * Creates a Vertex Array Object (VAO) in WebGL.
- * @param gl The WebGL context.
  * @returns The created Vertex Array Object (VAO).
  */
-export function createVAO(
-    gl: WebGL2RenderingContext
-): VAO {
+export function createVAO(): VAO {
     const vao = gl.createVertexArray() as WebGLVertexArrayObject;
 
     return {

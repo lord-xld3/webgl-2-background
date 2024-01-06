@@ -1,3 +1,4 @@
+import { gl } from "./Util";
 import { TypedArray } from "./Types";
 
 export interface VertexBufferInfo {
@@ -34,7 +35,6 @@ export interface VBO {
 }
 
 export function createVBO(
-    gl: WebGL2RenderingContext,
     prog: WebGLProgram,
     buf_info: VertexBufferInfo,
     ptrs_info: AttributeInfo[]
