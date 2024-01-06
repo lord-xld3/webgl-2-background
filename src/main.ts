@@ -94,11 +94,17 @@ const textures = [
     {
         key: "myTexture",
         src: "/img/myself.jpg",
-        texUnit: 0,
     },
 ];
 
-
+ctx.scene_manager.init({
+    myScene: {
+        texture_infos: textures,
+        models: [],
+    },
+}).then(() => {
+    ctx.loadTextures("myScene");
+});
 
 // Pre-render stuff
 gl.clearColor(0.0, 0.0, 0.0, 1.0);

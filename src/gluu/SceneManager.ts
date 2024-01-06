@@ -1,6 +1,7 @@
 import {
     Scene,
-    Texture
+    SceneInfo,
+    Texture,
 } from "./Interfaces";
 
 /**
@@ -10,55 +11,57 @@ export class SceneManager {
     private gl: WebGL2RenderingContext;
     private scenes: Scene;
 
-    constructor(
-        gl: WebGL2RenderingContext,
-        scenes: Scene
-    ) {
+    constructor(gl: WebGL2RenderingContext) {
         this.gl = gl;
-        this.scenes = scenes;
-        this.fetchTextures().then((textures) => {
-            for (const scene in this.scenes) {
-                this.scenes[scene].textures = textures;
-            }
-        });
+        this.scenes = {};
     }
 
-    private fetchTextures(): Promise<Texture[]> {
-        const texturePromises: Promise<Texture>[] = [];
-        
-        for (const scene in this.scenes) {
-            this.scenes[scene].textures.forEach((texture, i) => {
-                const promise = new Promise<Texture>((resolve, reject) => {
+    public async init(scenes: SceneInfo): Promise<void> {
+        const scenePromises: Promise<void>[] = [];
+    
+        for (const scene in scenes) {
+            const textures = scenes[scene].texture_infos;
+            const sceneTextures: Texture[] = await Promise.all(textures.map(async (tex, i) => {
+                const img = await new Promise<HTMLImageElement>((resolve, reject) => {
                     const img = new Image();
-                    img.onload = () => {
-                        resolve({
-                            src: texture.src,
-                            tex_unit: texture.tex_unit ? texture.tex_unit : i,
-                            img3D: texture.img3D ? texture.img3D : false,
-                            fmt: {
-                                target: texture.fmt?.target || this.gl.TEXTURE_2D,
-                                internal_format: texture.fmt?.internal_format || this.gl.RGBA,
-                                format: texture.fmt?.format || this.gl.RGBA,
-                                type: texture.fmt?.type || this.gl.UNSIGNED_BYTE,
-                            },
-                            tex: texture.img3D ? this.image3D(texture, img) : this.image2D(texture, img),
-                        });
-                    };
-                    img.onerror = () => reject(new Error(`Failed to load texture: ${texture.src}`));
-                    img.src = texture.src;
+                    img.onload = () => resolve(img);
+                    img.onerror = () => reject(new Error(`Failed to load image: ${tex.src}`));
+                    img.src = tex.src;
                 });
-                
-                texturePromises.push(promise);
-            });
+    
+                const texture: Texture = {
+                    tex: this.gl.createTexture() as WebGLTexture,
+                    tex_unit: tex.tex_unit ?? i,
+                    img3D: tex.img3D ?? false,
+                    fmt: {
+                        target: tex.fmt?.target ?? this.gl.TEXTURE_2D,
+                        mip_level: tex.fmt?.mip_level ?? 0,
+                        internal_format: tex.fmt?.internal_format ?? this.gl.RGBA,
+                        format: tex.fmt?.format ?? this.gl.RGBA,
+                        type: tex.fmt?.type ?? this.gl.UNSIGNED_BYTE,
+                    },
+                    params: tex.params ?? {},
+                };
+    
+                texture.img3D ? this.image3D(texture, img) : this.image2D(texture, img);
+                return texture;
+            }));
+    
+            this.scenes[scene] = {
+                textures: sceneTextures,
+                models: scenes[scene].models, // Assuming models are already present in SceneInfo
+            };
+    
+            scenePromises.push(Promise.resolve());
         }
-        
-        return Promise.all(texturePromises);
+    
+        await Promise.all(scenePromises);
     }
+    
 
-    private image2D(texture: Texture, img: HTMLImageElement): WebGLTexture {
-        const tex = this.gl.createTexture() as WebGLTexture;
+    private image2D(texture: Texture, img: HTMLImageElement) {
         this.gl.activeTexture(this.gl.TEXTURE0 + texture.tex_unit);
-        this.gl.bindTexture(texture.fmt.target, tex);
+        this.gl.bindTexture(texture.fmt.target, texture.tex);
         this.gl.texImage2D(
             texture.fmt.target,
             texture.fmt.mip_level,
@@ -75,11 +78,9 @@ export class SceneManager {
                 texture.params[param]
             );
         }
-        return tex;
     }
 
-    private image3D(texture: Texture, img: HTMLImageElement): WebGLTexture {
-        const tex = this.gl.createTexture() as WebGLTexture;
+    private image3D(texture: Texture, img: HTMLImageElement) {
         // TODO: Implement image3D
         throw new Error("Not implemented");
     }

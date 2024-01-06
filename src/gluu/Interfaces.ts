@@ -58,6 +58,9 @@ export interface UniformInfo {
     };
 }
 
+/**
+ * Texture information passed in to create a Texture.
+ */
 interface TextureInfo {
     src: string;
     tex_unit?: number;
@@ -74,23 +77,57 @@ interface TextureInfo {
     };
 }
 
-export interface Texture extends TextureInfo {
+/**
+ * A WebGL texture and its associated information.
+ */
+export interface Texture {
     tex: WebGLTexture;
+    tex_unit: number;
+    img3D: boolean;
+    fmt: {
+        target: number;
+        mip_level: number;
+        internal_format: number;
+        format: number;
+        type: number;
+    };
+    params: {
+        [key: number]: number;
+    };
 }
 
+/**
+ * A shader program and its associated uniforms.
+ */
 interface Material {
     prog: WebGLProgram;
     uniforms: UniformInfo;
 }
 
+/**
+ * A mesh and its associated material.
+ */
 interface Model {
     mesh: VAO;
     material: Material;
 }
 
+/**
+ * A scene and its associated textures and models.
+ */
 export interface Scene {
     [key: string]: {
         textures: Texture[];
+        models: Model[];
+    };
+}
+
+/**
+ * Information to create a scene.
+ */
+export interface SceneInfo {
+    [key: string]: {
+        texture_infos: TextureInfo[];
         models: Model[];
     };
 }

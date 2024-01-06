@@ -3,7 +3,7 @@ import {
     BufferInfo, 
     UniformBlockInfo, 
     UniformInfo, 
-    Scene,
+    SceneInfo,
 } from "./Interfaces";
 import { SceneManager } from "./SceneManager";
 import { UBO } from "./UBO";
@@ -19,7 +19,7 @@ Int32Array | Uint32Array | Float32Array | Float64Array;
 class Gluu {
     public canvas: HTMLCanvasElement;
     public gl: WebGL2RenderingContext;
-    private scene_manager: SceneManager;
+    public scene_manager: SceneManager;
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
@@ -27,6 +27,7 @@ class Gluu {
         if (!this.gl) {
             throw new Error("WebGL2 is not supported");
         }
+        this.scene_manager = new SceneManager(this.gl);
     }
 
     private makeShader(
@@ -120,8 +121,8 @@ class Gluu {
      * Creates a new SceneManager using the provided scenes.
      * @param scenes The scenes to use in the SceneManager.
      */
-    public makeScenes(scenes: Scene): void {
-        this.scene_manager = new SceneManager(this.gl, scenes);
+    public async makeScenes(scenes: SceneInfo): Promise<void> {
+        await this.scene_manager.init(scenes);
     }
 
     /**
