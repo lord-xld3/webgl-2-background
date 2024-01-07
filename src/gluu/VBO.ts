@@ -3,8 +3,7 @@ import { TypedArray } from "./Types";
 
 export interface VertexBufferInfo {
     data: TypedArray;
-    target: number;
-    usage: number;
+    usage?: number;
     stride?: number;
 }
 
@@ -54,9 +53,12 @@ export function createVBO(
         };
     });
 
+    const target = gl.ARRAY_BUFFER;
+    buf_info.usage??= gl.STATIC_DRAW;
+
     const buf = gl.createBuffer() as WebGLBuffer;
-    gl.bindBuffer(buf_info.target, buf);
-    gl.bufferData(buf_info.target, buf_info.data, buf_info.usage);
+    gl.bindBuffer(target, buf);
+    gl.bufferData(target, buf_info.data, buf_info.usage);
 
     const vbo = {
         buf_info,
@@ -67,7 +69,7 @@ export function createVBO(
     return {
         ...vbo,
         bind: () => {
-            gl.bindBuffer(vbo.buf_info.target, vbo.buf);
+            gl.bindBuffer(target, vbo.buf);
             vbo.ptrs.forEach((ptr) => {
                 gl.enableVertexAttribArray(ptr.loc);
                 gl.vertexAttribPointer(
@@ -79,12 +81,13 @@ export function createVBO(
                     ptr.offset
                 );
             });
+            gl.bindBuffer(target, null);
         },
         unbind: () => {
             vbo.ptrs.forEach((ptr) => {
                 gl.disableVertexAttribArray(ptr.loc);
             });
-            gl.bindBuffer(vbo.buf_info.target, null);
+            gl.bindBuffer(target, null);
         },
     };
 }

@@ -1,3 +1,4 @@
+export * from "./EBO";
 export * from "./Interfaces";
 export * from "./SceneManager";
 export * from "./Types";

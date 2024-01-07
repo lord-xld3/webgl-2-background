@@ -50,14 +50,44 @@ vao.bind();
 
 // A BufferInfo object contains the data, target, usage, and stride of a buffer.
 // stride is the number of bytes between two of the same attribute.
-const triangleBuffer: gluu.VertexBufferInfo = {
+const cubeBuffer: gluu.VertexBufferInfo = {
     data: new Float32Array([
-        0.0, 0.5, 0.0, 0.0, 0.5,
-        0.5, -0.5, 0.0, 1.0, 1.0,
-        -0.5, -0.5, 0.0, 0.0, 1.0
+        // Front face
+        -0.5,  0.5,  0.5,  0.0, 1.0, // Top-left (0)
+         0.5,  0.5,  0.5,  1.0, 1.0, // Top-right (1)
+         0.5, -0.5,  0.5,  1.0, 0.0, // Bottom-right (2)
+        -0.5, -0.5,  0.5,  0.0, 0.0, // Bottom-left (3)
+        
+        // Back face
+         0.5,  0.5, -0.5,  0.0, 1.0, // Top-right (4)
+        -0.5,  0.5, -0.5,  1.0, 1.0, // Top-left (5)
+        -0.5, -0.5, -0.5,  1.0, 0.0, // Bottom-left (6)
+         0.5, -0.5, -0.5,  0.0, 0.0, // Bottom-right (7)
+        
+        // Top face
+        -0.5,  0.5, -0.5,  0.0, 1.0, // Top-left (8)
+         0.5,  0.5, -0.5,  1.0, 1.0, // Top-right (9)
+         0.5,  0.5,  0.5,  1.0, 0.0, // Bottom-right (10)
+        -0.5,  0.5,  0.5,  0.0, 0.0, // Bottom-left (11)
+        
+        // Bottom face
+        -0.5, -0.5,  0.5,  0.0, 1.0, // Top-left (12)
+         0.5, -0.5,  0.5,  1.0, 1.0, // Top-right (13)
+         0.5, -0.5, -0.5,  1.0, 0.0, // Bottom-right (14)
+        -0.5, -0.5, -0.5,  0.0, 0.0, // Bottom-left (15)
+        
+        // Right face
+         0.5,  0.5,  0.5,  0.0, 1.0, // Top-left (16)
+         0.5,  0.5, -0.5,  1.0, 1.0, // Top-right (17)
+         0.5, -0.5, -0.5,  1.0, 0.0, // Bottom-right (18)
+         0.5, -0.5,  0.5,  0.0, 0.0, // Bottom-left (19)
+        
+        // Left face
+        -0.5,  0.5, -0.5,  0.0, 1.0, // Top-left (20)
+        -0.5,  0.5,  0.5,  1.0, 1.0, // Top-right (21)
+        -0.5, -0.5,  0.5,  1.0, 0.0, // Bottom-right (22)
+        -0.5, -0.5, -0.5,  0.0, 0.0  // Bottom-left (23)
     ]),
-    target: gl.ARRAY_BUFFER,
-    usage: gl.STATIC_DRAW,
     stride: 5 * 4,
 };
 
@@ -65,24 +95,50 @@ const triangleBuffer: gluu.VertexBufferInfo = {
 const positionPointer: gluu.AttributeInfo = {
     key: "a_position",
     size: 3,
-    stride: triangleBuffer.stride,
+    stride: cubeBuffer.stride,
 };
 
 const uvPointer: gluu.AttributeInfo = {
     key: "a_uv",
     size: 2,
     offset: 3 * 4,
-    stride: triangleBuffer.stride,
+    stride: cubeBuffer.stride,
 };
 
 // Keeping the buffer and VBO separate allows us to 're-interpret' the buffer
 // with different vertex attribute pointers.
-const vbo = gluu.createVBO(program, triangleBuffer, [positionPointer, uvPointer]);
-
-// In this simple program we have one VAO and VBO so it doesn't need to be unbound
+const vbo = gluu.createVBO(program, cubeBuffer, [positionPointer, uvPointer]);
 vbo.bind();
-// vao.unbind();
-// vbo.unbind();
+
+const ebo = gluu.createEBO({
+    data: new Uint16Array([
+        // Front face
+         0,  1,  2,
+         2,  3,  0,
+        
+        // Back face
+         4,  5,  6,
+         6,  7,  4,
+        
+        // Top face
+         8,  9, 10,
+        10, 11,  8,
+        
+        // Bottom face
+        12, 13, 14,
+        14, 15, 12,
+        
+        // Right face
+        16, 17, 18,
+        18, 19, 16,
+        
+        // Left face
+        20, 21, 22,
+        22, 23, 20,
+    ]),
+});
+
+ebo.bind();
 
 const ubo = gluu.createUBO(program, new Float32Array([0.0]), {
     key: "uniformBlock",
@@ -112,7 +168,7 @@ const scenes = gluu.createScenes({
                     {
                         vao: vao,
                         drawFunc: () => {
-                            gl.drawArrays(gl.TRIANGLES, 0, 3);
+                            gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
                         },
                     },
                 ],
@@ -135,20 +191,22 @@ gl.clear(gl.COLOR_BUFFER_BIT);
 gluu.resize();
 
 let tick = 0.0;
-let maxTick = 1.0;
+let speed = 0.01;
+const maxTick = 1.0;
+let lastTime = performance.now();
 
-// Render loop
 function render() {
-    // Pre-draw stuff
-    gluu.resize();
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    const currentTime = performance.now();
+    const deltaTime = (currentTime - lastTime) / 1000; // Convert to seconds
+    lastTime = currentTime;
 
-    tick = (tick + 0.0001) % maxTick;
-    
-    ubo.setUniform({key: "u_tick", data: new Float32Array([tick])})
+    tick = (tick + (deltaTime * speed)) % maxTick;
+
+    ubo.setUniform({ key: "u_tick", data: new Float32Array([tick]) });
     ubo.update();
-    // Draw stuff
+
+    // Additional update logic or rendering here
     gluu.drawScene("myScene");
-    // Post-draw stuff
+
     requestAnimationFrame(render);
 }
