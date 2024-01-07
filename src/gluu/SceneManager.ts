@@ -1,6 +1,5 @@
 import { gl } from "./Util";
 import { VAO } from "./VAO";
-import { UniformInfo } from "./Interfaces";
 
 export interface TextureInfo {
     src: string;
@@ -34,24 +33,42 @@ export interface Texture {
     };
 }
 
+export interface UniformBlockInfo {
+    key: string; // Block key/name
+    uniforms: UniformInfo; // Uniforms within the block
+    binding?: number; // Binding point for the block
+    usage?: number; // Buffer usage
+}
+
+export interface UniformInfo {
+    [key: string]: {
+        type: number; // Uniform type (e.g., gl.FLOAT_VEC3)
+        size: number; // Uniform size
+        offset: number; // Offset within the block
+    };
+}
+
 export interface Material {
     prog: WebGLProgram;
-    uniforms?: UniformInfo;
+    blockInfo?: UniformBlockInfo; // Program's uniform block info
 }
 
 export interface Mesh {
     vao: VAO;
     drawFunc: () => void;
+    blockInfo?: UniformBlockInfo; // Mesh-specific uniform block info
 }
 
 export interface Model {
     mesh: Mesh[];
     material: Material;
 }
+
 export interface Scene {
     [key: string]: {
         textures: Texture[];
         models: Model[];
+        blockInfo?: UniformBlockInfo; // Scene-level uniform block info
     }
 }
 
@@ -59,6 +76,7 @@ export interface SceneInfo {
     [key: string]: {
         texture_infos: TextureInfo[];
         models: Model[];
+        blockInfo?: UniformBlockInfo; // Scene-level uniform block info
     };
 }
 
@@ -67,6 +85,8 @@ let scenes: Scene = {};
 export async function createScenes(scene_info: SceneInfo): Promise<void> {
     const texturePromises = Object.entries(scene_info).map(async ([k, v]) => {
         const texturePromises = v.texture_infos.map(async (tex, i) => {
+            if (i > 31) throw new Error("Can't load more than 32 textures");
+            
             const img = await new Promise<HTMLImageElement>((resolve, reject) => {
                 const img = new Image();
                 img.onload = () => resolve(img);
@@ -152,4 +172,35 @@ export function drawScene(scene: string): void {
             mesh.drawFunc();
         });
     });
+}
+
+function createUBOs(scene: {
+    models: Model[];
+    blockInfo?: UniformBlockInfo;
+}): void {
+    
+    // Set to store unique block keys encountered
+    const uniqueBlocks = new Set<string>();
+
+    // Recursively crawl through models/meshes, collect unique block keys
+    function collectBlocks(model: Model) {
+        // Check if the model has a blockInfo and process it
+        if (model.material.blockInfo) {
+            uniqueBlocks.add(model.material.blockInfo.key);
+        }
+
+        // Check blockInfo for each mesh in the model
+        model.mesh.forEach(mesh => {
+            if (mesh.blockInfo) {
+                uniqueBlocks.add(mesh.blockInfo.key);
+            }
+        });
+    }
+
+    // Traverse through each model in the scene to collect unique block keys
+    scene.models.forEach(model => {
+        collectBlocks(model);
+    });
+
+    
 }

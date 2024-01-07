@@ -5,6 +5,7 @@ import { UniformInfo } from "./Interfaces";
 export interface UniformBlockInfo {
     key: string;
     binding?: number;
+    usage?: number;
 }
 
 export interface UniformData {
@@ -14,7 +15,6 @@ export interface UniformData {
 
 export interface UBO {
     data: TypedArray;
-    block_info: UniformBlockInfo;
     uniforms: UniformInfo;
     bind: () => void;
     unbind: () => void;
@@ -37,21 +37,22 @@ export function createUBO(
     }
     const buf = gl.createBuffer();
     const binding = block_info.binding?? 0;
-    gl.bindBuffer(gl.UNIFORM_BUFFER, buf);
-    gl.bufferData(gl.UNIFORM_BUFFER, data, gl.DYNAMIC_DRAW);
+    const target = gl.UNIFORM_BUFFER;
+
+    gl.bindBuffer(target, buf);
+    gl.bufferData(target, data, block_info.usage?? gl.DYNAMIC_DRAW);
     gl.uniformBlockBinding(prog, blockIndex, binding);
-    gl.bindBufferBase(gl.UNIFORM_BUFFER, binding, buf);
+    gl.bindBufferBase(target, binding, buf);
 
     const ubo: UBO = {
         data,
-        block_info,
         uniforms,
-        bind: () => gl.bindBuffer(gl.UNIFORM_BUFFER, buf),
-        unbind: () => gl.bindBuffer(gl.UNIFORM_BUFFER, null),
+        bind: () => gl.bindBuffer(target, buf),
+        unbind: () => gl.bindBuffer(target, null),
         bindRange: (
             offset: number, 
             size: number
-        ) => gl.bindBufferRange(gl.UNIFORM_BUFFER, binding, ubo.data, offset, size),
+        ) => gl.bindBufferRange(target, binding, ubo.data, offset, size),
         setUniform: (
             uniform: UniformData
         ) => ubo.data.set(uniform.data, ubo.uniforms[uniform.key] as unknown as number),
@@ -66,7 +67,7 @@ export function createUBO(
             newData: TypedArray, 
             offset: number = 0
         ) => ubo.data.set(newData, offset),
-        update: () => gl.bufferSubData(gl.UNIFORM_BUFFER, 0, ubo.data),
+        update: () => gl.bufferSubData(target, 0, ubo.data),
     };
 
     return ubo;
