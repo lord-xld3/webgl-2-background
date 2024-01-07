@@ -1,5 +1,4 @@
 import { gl } from "./Util";
-import { TypedArray } from "./Types";
 
 /**
  * Represents a Vertex Array Object (VAO) in WebGL.

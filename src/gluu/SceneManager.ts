@@ -64,7 +64,7 @@ export interface SceneInfo {
 
 let scenes: Scene = {};
 
-export async function initScene(scene_info: SceneInfo): Promise<void> {
+export async function createScenes(scene_info: SceneInfo): Promise<void> {
     const texturePromises = Object.entries(scene_info).map(async ([k, v]) => {
         const texturePromises = v.texture_infos.map(async (tex, i) => {
             const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -144,7 +144,7 @@ export function loadScene(scene: string): void {
  * Draws a scene.
  * @param scene - The name of the scene to draw.
  */
-export function draw(scene: string): void {
+export function drawScene(scene: string): void {
     scenes[scene].models.forEach((model) => {
         gl.useProgram(model.material.prog);
         model.mesh.forEach((mesh) => {
