@@ -1,48 +1,50 @@
 import { gl } from "./Util";
 import { TypedArray } from "./Types";
 
-export interface VertexBufferInfo {
-    data: TypedArray;
-    usage?: number;
-    stride?: number;
-}
-
-export interface VertexAttributePointer {
-    loc: number;
-    size: number;
-    type: number;
-    normalized: boolean;
-    stride: number;
-    offset: number;
-}
-
-export interface AttributeInfo {
-    key: string;
-    size: number;
-    type?: number;
-    normalized?: boolean;
-    stride?: number;
-    offset?: number;
-}
-
+/**
+ * A Vertex Buffer Object (VBO)
+ */
 export interface VBO {
-    buf_info: VertexBufferInfo;
-    ptrs: VertexAttributePointer[];
-    buf: WebGLBuffer;
     bind: () => void;
     unbind: () => void;
 }
 
+/**
+ * Creates a Vertex Buffer Object (VBO).
+ * @param prog - The shader program to bind the VBO to.
+ * @param buf_info - The buffer data and usage.
+ * @param ptrs_info  - The attribute pointers info.
+ * @returns - The VBO.
+ */
 export function createVBO(
     prog: WebGLProgram,
-    buf_info: VertexBufferInfo,
-    ptrs_info: AttributeInfo[]
+    buf_info: {
+        data: TypedArray;
+        usage?: number;
+    },
+    ptrs_info: {
+        key: string;
+        size: number;
+        type?: number;
+        normalized?: boolean;
+        stride?: number;
+        offset?: number;
+    }[]
 ): VBO {
-    const ptrs: VertexAttributePointer[] = ptrs_info.map((ptr) => {
+    const ptrs: {
+        loc: number;
+        size: number;
+        type: number;
+        normalized: boolean;
+        stride: number;
+        offset: number;
+    }[] = ptrs_info.map((ptr) => {
         const loc = gl.getAttribLocation(prog, ptr.key);
+        /// #if DEBUG
         if (loc === -1) {
             throw new Error(`Attribute ${ptr.key} not found in program`);
         }
+        /// #endif
         return {
             loc,
             size: ptr.size,
@@ -54,23 +56,14 @@ export function createVBO(
     });
 
     const target = gl.ARRAY_BUFFER;
-    buf_info.usage??= gl.STATIC_DRAW;
-
     const buf = gl.createBuffer() as WebGLBuffer;
     gl.bindBuffer(target, buf);
-    gl.bufferData(target, buf_info.data, buf_info.usage);
-
-    const vbo = {
-        buf_info,
-        ptrs,
-        buf,
-    };
+    gl.bufferData(target, buf_info.data, buf_info.usage?? gl.STATIC_DRAW);
 
     return {
-        ...vbo,
         bind: () => {
-            gl.bindBuffer(target, vbo.buf);
-            vbo.ptrs.forEach((ptr) => {
+            gl.bindBuffer(target, buf);
+            ptrs.forEach((ptr) => {
                 gl.enableVertexAttribArray(ptr.loc);
                 gl.vertexAttribPointer(
                     ptr.loc,
@@ -84,7 +77,7 @@ export function createVBO(
             gl.bindBuffer(target, null);
         },
         unbind: () => {
-            vbo.ptrs.forEach((ptr) => {
+            ptrs.forEach((ptr) => {
                 gl.disableVertexAttribArray(ptr.loc);
             });
             gl.bindBuffer(target, null);

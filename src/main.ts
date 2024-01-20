@@ -50,7 +50,7 @@ vao.bind();
 
 // A BufferInfo object contains the data, target, usage, and stride of a buffer.
 // stride is the number of bytes between two of the same attribute.
-const cubeBuffer: gluu.VertexBufferInfo = {
+const cubeBuffer = {
     data: new Float32Array([
         // Front face
         -0.5,  0.5,  0.5,  0.0, 1.0, // Top-left (0)
@@ -87,31 +87,30 @@ const cubeBuffer: gluu.VertexBufferInfo = {
         -0.5,  0.5,  0.5,  1.0, 1.0, // Top-right (21)
         -0.5, -0.5,  0.5,  1.0, 0.0, // Bottom-right (22)
         -0.5, -0.5, -0.5,  0.0, 0.0  // Bottom-left (23)
-    ]),
-    stride: 5 * 4,
+    ])
 };
 
 // Keeping the pointers separate lets us reuse pointers for different buffers
-const positionPointer: gluu.AttributeInfo = {
+const positionPointer = {
     key: "a_position",
     size: 3,
-    stride: cubeBuffer.stride,
+    stride: 5 * 4,
 };
 
-const uvPointer: gluu.AttributeInfo = {
+const uvPointer = {
     key: "a_uv",
     size: 2,
     offset: 3 * 4,
-    stride: cubeBuffer.stride,
+    stride: 5 * 4,
 };
 
 // Keeping the buffer and VBO separate allows us to 're-interpret' the buffer
 // with different vertex attribute pointers.
 const vbo = gluu.createVBO(program, cubeBuffer, [positionPointer, uvPointer]);
-vbo.bind();
+vbo.enable();
 
-const ebo = gluu.createEBO({
-    data: new Uint16Array([
+const ebo = gluu.createEBO(
+    new Uint16Array([
         // Front face
          0,  1,  2,
          2,  3,  0,
@@ -135,8 +134,8 @@ const ebo = gluu.createEBO({
         // Left face
         20, 21, 22,
         22, 23, 20,
-    ]),
-});
+    ])
+);
 
 ebo.bind();
 

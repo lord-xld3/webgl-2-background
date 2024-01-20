@@ -1,206 +1,143 @@
 import { gl } from "./Util";
+import { TypedArray } from "./Types";
 import { VAO } from "./VAO";
 
-export interface TextureInfo {
-    src: string;
-    tex_unit?: number;
-    img3D?: boolean;
-    fmt?: {
-        target?: number;
-        mip_level?: number;
-        internal_format?: number;
-        format?: number;
-        type?: number;
-    };
-    params?: {
-        [key: number]: number;
-    };
-}
+/* Abstraction hell.
 
-export interface Texture {
-    tex: WebGLTexture;
-    tex_unit: number;
-    img3D: boolean;
-    fmt: {
-        target: number;
-        mip_level: number;
-        internal_format: number;
-        format: number;
-        type: number;
-    };
-    params: {
-        [key: number]: number;
-    };
-}
+Our render-specific part of the loop can 
+encounter the following cases and their opposites:
 
-export interface UniformBlockInfo {
-    key: string; // Block key/name
-    uniforms: UniformInfo; // Uniforms within the block
-    binding?: number; // Binding point for the block
-    usage?: number; // Buffer usage
-}
+- A static set of shader programs
+- All shader programs have uniform data
 
-export interface UniformInfo {
-    [key: string]: {
-        type: number; // Uniform type (e.g., gl.FLOAT_VEC3)
-        size: number; // Uniform size
-        offset: number; // Offset within the block
-    };
-}
+- A static set of geometries
+- All geometries have uniform data
 
-export interface Material {
-    prog: WebGLProgram;
-    blockInfo?: UniformBlockInfo; // Program's uniform block info
-}
+And two additional cases:
+- Some shader programs have uniform data
+- Some geometries have uniform data
 
-export interface Mesh {
-    vao: VAO;
-    drawFunc: () => void;
-    blockInfo?: UniformBlockInfo; // Mesh-specific uniform block info
-}
+(2 states for static OR dynamic shaders) * (3 states for shader uniform data)
+* (2 states for static OR dynamic geometries) * (3 states for geometry uniform data)
+= 36 possible "perfect" render loops!
 
-export interface Model {
-    mesh: Mesh[];
-    material: Material;
-}
+If we have both static shader programs and static geometries,
+this is trivial to inline within the render loop. Not fun,
+but if performance is critical...
 
-export interface Scene {
-    [key: string]: {
-        textures: Texture[];
-        models: Model[];
-        blockInfo?: UniformBlockInfo; // Scene-level uniform block info
-    }
-}
+    function renderLoop2()... // within any render loop it calls itself, duh
+    function render()... "if condition then renderLoop2()..."
 
-export interface SceneInfo {
-    [key: string]: {
-        texture_infos: TextureInfo[];
-        models: Model[];
-        blockInfo?: UniformBlockInfo; // Scene-level uniform block info
-    };
-}
+This extends to the case where one or the other is static.
+A custom loop could be written for those.
 
-let scenes: Scene = {};
+That brings us to (1 * 3 * 1 * 3) = 9 possible render loops. 
 
-export async function createScenes(scene_info: SceneInfo): Promise<void> {
-    const texturePromises = Object.entries(scene_info).map(async ([k, v]) => {
-        const texturePromises = v.texture_infos.map(async (tex, i) => {
-            if (i > 31) throw new Error("Can't load more than 32 textures");
-            
-            const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-                const img = new Image();
-                img.onload = () => resolve(img);
-                img.onerror = () => reject(new Error(`Failed to load image: ${tex.src}`));
-                img.src = tex.src;
-            });
+Now there's one possible loop that is the least efficient, but may be necessary.
+Under these conditions:
+    - Some shader programs have uniform data
+    - Some geometries have uniform data
+    - A dynamic set of shader programs
+    - A dynamic set of geometries
 
-            const texture: Texture = {
-                tex: gl.createTexture() as WebGLTexture,
-                tex_unit: tex.tex_unit ?? i,
-                img3D: tex.img3D ?? false,
-                fmt: {
-                    target: tex.fmt?.target ?? gl.TEXTURE_2D,
-                    mip_level: tex.fmt?.mip_level ?? 0,
-                    internal_format: tex.fmt?.internal_format ?? gl.RGBA,
-                    format: tex.fmt?.format ?? gl.RGBA,
-                    type: tex.fmt?.type ?? gl.UNSIGNED_BYTE,
-                },
-                params: tex.params ?? {},
-            };
+Then for each shader program we must check if it has uniform data.
+And for each geometry we must check if it has uniform data.
 
-            texture.img3D ? image3D(texture, img) : image2D(texture, img);
-            return texture;
-        });
+This loop however, is capable of handling any permutation.
+*/
 
-        scenes[k] = {
-            textures: await Promise.all(texturePromises),
-            models: v.models,
-        };
-    });
+/**
+ * The global list of things to render.
+ */
+export let render_list: Mesh[] = [];
 
-    await Promise.all(texturePromises);
-}
+/**
+ * A map to access the meshes by name.
+ */
+export let mesh_map: MiniMap<string | symbol, number> = {};
 
+/**
+ * A map to access the geometries by name.
+ */
+export let geometry_map: MiniMap<string | symbol, number> = {};
 
-
-function image2D(texture: Texture, img: HTMLImageElement) {
-    gl.activeTexture(gl.TEXTURE0 + texture.tex_unit);
-    gl.bindTexture(texture.fmt.target, texture.tex);
-    gl.texImage2D(
-        texture.fmt.target,
-        texture.fmt.mip_level,
-        texture.fmt.internal_format,
-        texture.fmt.format,
-        texture.fmt.type,
-        img
-    );
-    gl.generateMipmap(texture.fmt.target);
-    for (const param in texture.params) {
-        gl.texParameteri(
-            texture.fmt.target,
-            param as unknown as number,
-            texture.params[param as unknown as number]
-        );
-    }
-};
-
-function image3D(texture: Texture, img: HTMLImageElement) {
-    // TODO: Implement image3D
-    throw new Error("Not implemented");
+/**
+ * A common key-value map.
+ */
+export type MiniMap<K extends string | symbol, V> = {
+    [key in K]: V;
 };
 
 /**
- * Loads textures for a scene.
- * @param scene - The name of the scene to load.
+ * We're forcing the use of UBOs for all uniforms.
  */
-export function loadScene(scene: string): void {
-    scenes[scene].textures.forEach((texture) => {
-        gl.activeTexture(gl.TEXTURE0 + texture.tex_unit);
-        gl.bindTexture(texture.fmt.target, texture.tex);
-    });
+export type Uniform = [
+    number,     // offset
+    TypedArray, // data
+]
+
+/**
+ * A uniform buffer object.
+ */
+export type UBO = [
+    TypedArray, // Buffer data
+    [
+        string,   // Uniform name
+        number,   // Number of elements * size of array element
+        number,   // Offset
+    ][],         // Array of uniforms' info
+];
+
+/**
+ * How to draw something, and its data.
+ */
+export type Geometry = {
+    vao: VAO,                     // vertex array object
+    draw: () => void,             // draw function
+    uniform_buffer?: WebGLBuffer, // geometry uniform buffer
+    uniform_data?: TypedArray,    // geometry uniform data
 }
 
 /**
- * Draws a scene.
- * @param scene - The name of the scene to draw.
+ * A mesh is a collection of geometries that share a material.
  */
-export function drawScene(scene: string): void {
-    scenes[scene].models.forEach((model) => {
-        gl.useProgram(model.material.prog);
-        model.mesh.forEach((mesh) => {
-            mesh.vao.bind();
-            mesh.drawFunc();
-        });
-    });
+export type Mesh = {
+    program: WebGLProgram,        // shader program
+    geometry: Geometry[],         // a list of geometries to render
+    uniform_buffer?: WebGLBuffer, // program uniform buffer
+    uniform_data?: TypedArray,    // program uniform data
 }
 
-function createUBOs(scene: {
-    models: Model[];
-    blockInfo?: UniformBlockInfo;
-}): void {
-    
-    // Set to store unique block keys encountered
-    const uniqueBlocks = new Set<string>();
-
-    // Recursively crawl through models/meshes, collect unique block keys
-    function collectBlocks(model: Model) {
-        // Check if the model has a blockInfo and process it
-        if (model.material.blockInfo) {
-            uniqueBlocks.add(model.material.blockInfo.key);
+/**
+ * Draws the scene using the render_list
+ */
+export function drawScene(): void {
+    for (let i = 0; i < render_list.length; i++) {
+        const mesh = render_list[i];
+        gl.useProgram(mesh.program);
+        if (mesh.uniform_buffer) {
+            gl.bindBuffer(gl.UNIFORM_BUFFER, mesh.uniform_buffer);
+            /// #if DEBUG
+            if (!mesh.uniform_data) throw new Error(
+                `Mesh uniform data is undefined, but a buffer was specified: ${mesh}`
+            );
+            /// #endif
+            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, mesh.uniform_data);
         }
 
-        // Check blockInfo for each mesh in the model
-        model.mesh.forEach(mesh => {
-            if (mesh.blockInfo) {
-                uniqueBlocks.add(mesh.blockInfo.key);
+        for (let j = 0; j < mesh.geometry.length; j++) {
+            const geometry = mesh.geometry[j];
+            geometry.vao.bind();
+            if (geometry.uniform_buffer) {
+                gl.bindBuffer(gl.UNIFORM_BUFFER, geometry.uniform_buffer);
+                /// #if DEBUG
+                if (!geometry.uniform_data) throw new Error(
+                    `Geometry uniform data is undefined, but a buffer was specified: ${geometry}`
+                );
+                /// #endif
+                gl.bufferSubData(gl.UNIFORM_BUFFER, 0, geometry.uniform_data);
             }
-        });
+            geometry.draw(); // draw function
+        }
     }
-
-    // Traverse through each model in the scene to collect unique block keys
-    scene.models.forEach(model => {
-        collectBlocks(model);
-    });
-
-    
 }

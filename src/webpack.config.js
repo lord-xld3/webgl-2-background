@@ -24,7 +24,13 @@ module.exports = {
         rules: [
             {
                 test: /\.(ts|tsx)$/,
-                use: 'ts-loader',
+                use: [
+                    {loader: 'ts-loader'},
+                    {loader: 'ifdef-loader', options: {
+                        DEBUG: true,
+                        'ifdef-verbose': true,
+                    }},
+                ],
                 exclude: /node_modules/,
             },
             {
