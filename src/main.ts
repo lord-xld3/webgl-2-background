@@ -150,19 +150,7 @@ const ubo = gluu.createUBO(program, new Float32Array([0.0]), {
 
 ubo.bind();
 
-const myscene = async () => gluu.createScene({
-    textures: [
-        {
-            src: "img/myself.jpg",
-            tex_unit: 0,
-            params: {
-                [gl.TEXTURE_MIN_FILTER]: gl.NEAREST,
-                [gl.TEXTURE_MAG_FILTER]: gl.NEAREST,
-                [gl.TEXTURE_WRAP_S]: gl.REPEAT,
-                [gl.TEXTURE_WRAP_T]: gl.REPEAT,
-            },
-        },
-    ],
+const myscene = gluu.createScene({
     meshes: [
         {
             program,
@@ -180,13 +168,21 @@ const myscene = async () => gluu.createScene({
             ],
         },
     ],
+    textures: [
+        {
+            src: "img/myself.jpg",
+            tex_unit: 0,
+            params: {
+                [gl.TEXTURE_MIN_FILTER]: gl.LINEAR_MIPMAP_LINEAR,
+                [gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
+                [gl.TEXTURE_WRAP_S]: gl.REPEAT,
+                [gl.TEXTURE_WRAP_T]: gl.REPEAT,
+            },
+        },
+    ],
 });
 
-myscene().then((scene) => {
-    scene.load();
-    render();
-});
-
+window.addEventListener("resize", gluu.resize);
 
 // Pre-render stuff
 gl.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -198,6 +194,9 @@ let speed = 0.01;
 const maxTick = 1.0;
 let lastTime = performance.now();
 
+myscene.load();
+render();
+
 function render() {
     const currentTime = performance.now();
     const deltaTime = (currentTime - lastTime) / 1000; // Convert to seconds
@@ -208,7 +207,6 @@ function render() {
     ubo.setUniform({ key: "u_tick", data: new Float32Array([tick]) });
     ubo.update();
 
-    // Additional update logic or rendering here
     gluu.drawScene();
 
     requestAnimationFrame(render);

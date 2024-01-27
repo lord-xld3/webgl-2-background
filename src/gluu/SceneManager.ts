@@ -91,16 +91,6 @@ export type Scene = {
 }
 
 export type SceneInfo = {
-    textures: {
-        src: string,
-        tex_unit?: number,
-        params?: {
-            [key: number]: number,
-        },
-        format?: {
-            [key: number]: number,
-        }
-    }[],
     meshes: {
         program: WebGLProgram,
         geometry: {
@@ -111,6 +101,16 @@ export type SceneInfo = {
         globals?: number[],
         material?: Material,
     }[],
+    textures?: {
+        src: string,
+        tex_unit?: number,
+        params?: {
+            [key: number]: number,
+        },
+        format?: {
+            [key: number]: number,
+        }
+    }[],
 }
 
 export function createScene(scene: SceneInfo): Scene {
@@ -119,30 +119,26 @@ export function createScene(scene: SceneInfo): Scene {
         target: gl.TEXTURE_2D,
         mip_level: 0,
         internal_format: gl.RGBA,
-        width: 2,
-        height: 2,
-        border: 0,
         format: gl.RGBA,
         type: gl.UNSIGNED_BYTE,
     };
 
-    const textures: {texture: WebGLTexture, unit: number}[] = [];
-    for (let i = 0; i < scene.textures.length; i++) {
-        const texture = scene.textures[i];
-
-        // create texture
+    const textures: {texture: WebGLTexture, unit: number}[] | undefined
+    = scene.textures?.map((texture, i) => {
+        
+        // create default texture
         const tex = gl.createTexture() as WebGLTexture;
         const unit = texture.tex_unit || i;
         gl.bindTexture(default_format.target, tex);
         gl.texImage2D(
-            default_format.target,
-            default_format.mip_level,
-            default_format.internal_format,
-            default_format.width,
-            default_format.height,
-            default_format.border,
-            default_format.format,
-            default_format.type,
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            2,
+            2,
+            0,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
             // default texture
             new Uint8Array([
                 192, 0, 192, 255,
@@ -163,12 +159,35 @@ export function createScene(scene: SceneInfo): Scene {
             );
         }
 
-        textures.push({texture: tex, unit: unit});
-    }
+        // async load texture and re-bind/update it
+        const img = new Image();
+        img.onload = () => {
+            const format = Object.assign(default_format, texture.format);
+            gl.bindTexture(format.target, tex);
+            gl.texImage2D(
+                format.target,
+                format.mip_level,
+                format.internal_format,
+                format.format,
+                format.type,
+                img
+            );
+            gl.generateMipmap(format.target);
+        };
+        img.onerror = () => {
+            console.warn(`Failed to load texture from: ${texture.src}`);
+        }
+        img.src = texture.src;
+
+        return {
+            texture: tex,
+            unit: unit,
+        }
+    });
 
     return {
         load: () => {
-            textures.forEach((texture) => {
+            textures?.forEach((texture) => {
                 gl.activeTexture(gl.TEXTURE0 + texture.unit);
                 gl.bindTexture(gl.TEXTURE_2D, texture.texture);
             });
