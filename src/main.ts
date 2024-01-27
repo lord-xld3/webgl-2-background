@@ -107,7 +107,7 @@ const uvPointer = {
 // Keeping the buffer and VBO separate allows us to 're-interpret' the buffer
 // with different vertex attribute pointers.
 const vbo = gluu.createVBO(program, cubeBuffer, [positionPointer, uvPointer]);
-vbo.enable();
+vbo.bind();
 
 const ebo = gluu.createEBO(
     new Uint16Array([
@@ -150,39 +150,43 @@ const ubo = gluu.createUBO(program, new Float32Array([0.0]), {
 
 ubo.bind();
 
-const scenes = gluu.createScenes({
-    "myScene": {
-        texture_infos: [
-            {
-                src: "img/water.png",
-                params: {
-                    [gl.TEXTURE_MIN_FILTER]: gl.LINEAR_MIPMAP_LINEAR,
-                    [gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
-                }
+const myscene = async () => gluu.createScene({
+    textures: [
+        {
+            src: "img/myself.jpg",
+            tex_unit: 0,
+            params: {
+                [gl.TEXTURE_MIN_FILTER]: gl.NEAREST,
+                [gl.TEXTURE_MAG_FILTER]: gl.NEAREST,
+                [gl.TEXTURE_WRAP_S]: gl.REPEAT,
+                [gl.TEXTURE_WRAP_T]: gl.REPEAT,
             },
-        ],
-        models: [
-            {
-                mesh: [
-                    {
-                        vao: vao,
-                        drawFunc: () => {
-                            gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
-                        },
+        },
+    ],
+    meshes: [
+        {
+            program,
+            geometry: [
+                {
+                    vao,
+                    draw: () => {
+                        gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
                     },
-                ],
-                material: {
-                    prog: program,
                 },
-            },
-        ],
-    },
+            ],
+            globals: [
+                gl.CULL_FACE,
+                gl.DEPTH_TEST,
+            ],
+        },
+    ],
 });
 
-scenes.then(() => {
-    gluu.loadScene("myScene")
+myscene().then((scene) => {
+    scene.load();
     render();
-}).catch((e) => console.error(e));
+});
+
 
 // Pre-render stuff
 gl.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -205,7 +209,7 @@ function render() {
     ubo.update();
 
     // Additional update logic or rendering here
-    gluu.drawScene("myScene");
+    gluu.drawScene();
 
     requestAnimationFrame(render);
 }

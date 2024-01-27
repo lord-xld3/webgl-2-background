@@ -2,50 +2,6 @@ import { gl } from "./Util";
 import { TypedArray } from "./Types";
 import { VAO } from "./VAO";
 
-/* Abstraction hell.
-
-Our render-specific part of the loop can 
-encounter the following cases and their opposites:
-
-- A static set of shader programs
-- All shader programs have uniform data
-
-- A static set of geometries
-- All geometries have uniform data
-
-And two additional cases:
-- Some shader programs have uniform data
-- Some geometries have uniform data
-
-(2 states for static OR dynamic shaders) * (3 states for shader uniform data)
-* (2 states for static OR dynamic geometries) * (3 states for geometry uniform data)
-= 36 possible "perfect" render loops!
-
-If we have both static shader programs and static geometries,
-this is trivial to inline within the render loop. Not fun,
-but if performance is critical...
-
-    function renderLoop2()... // within any render loop it calls itself, duh
-    function render()... "if condition then renderLoop2()..."
-
-This extends to the case where one or the other is static.
-A custom loop could be written for those.
-
-That brings us to (1 * 3 * 1 * 3) = 9 possible render loops. 
-
-Now there's one possible loop that is the least efficient, but may be necessary.
-Under these conditions:
-    - Some shader programs have uniform data
-    - Some geometries have uniform data
-    - A dynamic set of shader programs
-    - A dynamic set of geometries
-
-Then for each shader program we must check if it has uniform data.
-And for each geometry we must check if it has uniform data.
-
-This loop however, is capable of handling any permutation.
-*/
-
 /**
  * The global list of things to render.
  */
@@ -69,75 +25,154 @@ export type MiniMap<K extends string | symbol, V> = {
 };
 
 /**
- * We're forcing the use of UBOs for all uniforms.
+ * A material is just uniform data.
  */
-export type Uniform = [
-    number,     // offset
-    TypedArray, // data
-]
-
-/**
- * A uniform buffer object.
- */
-export type UBO = [
-    TypedArray, // Buffer data
-    [
-        string,   // Uniform name
-        number,   // Number of elements * size of array element
-        number,   // Offset
-    ][],         // Array of uniforms' info
-];
+export type Material = {
+    buffer: WebGLBuffer, // material uniform buffer
+    data: TypedArray,    // material uniform data
+}
 
 /**
  * How to draw something, and its data.
  */
 export type Geometry = {
-    vao: VAO,                     // vertex array object
-    draw: () => void,             // draw function
-    uniform_buffer?: WebGLBuffer, // geometry uniform buffer
-    uniform_data?: TypedArray,    // geometry uniform data
+    vao: VAO,             // vertex array object
+    draw: () => void,     // draw function
+    material?: Material,  // material uniform data
 }
 
 /**
  * A mesh is a collection of geometries that share a material.
  */
 export type Mesh = {
-    program: WebGLProgram,        // shader program
-    geometry: Geometry[],         // a list of geometries to render
-    uniform_buffer?: WebGLBuffer, // program uniform buffer
-    uniform_data?: TypedArray,    // program uniform data
+    program: WebGLProgram, // shader program
+    geometry: Geometry[],  // a list of geometries to render
+    globals?: number[],    // global state options
+    material?: Material,   // material uniform data
 }
 
 /**
  * Draws the scene using the render_list
  */
 export function drawScene(): void {
-    for (let i = 0; i < render_list.length; i++) {
-        const mesh = render_list[i];
-        gl.useProgram(mesh.program);
-        if (mesh.uniform_buffer) {
-            gl.bindBuffer(gl.UNIFORM_BUFFER, mesh.uniform_buffer);
-            /// #if DEBUG
-            if (!mesh.uniform_data) throw new Error(
-                `Mesh uniform data is undefined, but a buffer was specified: ${mesh}`
-            );
-            /// #endif
-            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, mesh.uniform_data);
+    render_list.forEach((mesh) => {
+        
+        // global state options
+        if (mesh.globals) {
+            mesh.globals.forEach((global) => {
+                gl.enable(global);
+            });
         }
 
-        for (let j = 0; j < mesh.geometry.length; j++) {
-            const geometry = mesh.geometry[j];
+        gl.useProgram(mesh.program);
+        
+        // program-specific uniforms
+        if (mesh.material) {
+            gl.bindBuffer(gl.UNIFORM_BUFFER, mesh.material.buffer);
+            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, mesh.material.data);
+        }
+
+        // load and draw each geometry
+        mesh.geometry.forEach((geometry) => {
             geometry.vao.bind();
-            if (geometry.uniform_buffer) {
-                gl.bindBuffer(gl.UNIFORM_BUFFER, geometry.uniform_buffer);
-                /// #if DEBUG
-                if (!geometry.uniform_data) throw new Error(
-                    `Geometry uniform data is undefined, but a buffer was specified: ${geometry}`
-                );
-                /// #endif
-                gl.bufferSubData(gl.UNIFORM_BUFFER, 0, geometry.uniform_data);
+
+            // geometry-specific uniforms
+            if (geometry.material) {
+                gl.bindBuffer(gl.UNIFORM_BUFFER, geometry.material.buffer);
+                gl.bufferSubData(gl.UNIFORM_BUFFER, 0, geometry.material.data);
             }
             geometry.draw(); // draw function
+        });
+    });
+}
+
+export type Scene = {
+    load: () => void,
+}
+
+export type SceneInfo = {
+    textures: {
+        src: string,
+        tex_unit?: number,
+        params?: {
+            [key: number]: number,
+        },
+        format?: {
+            [key: number]: number,
+        }
+    }[],
+    meshes: {
+        program: WebGLProgram,
+        geometry: {
+            vao: VAO,
+            draw: () => void,
+            material?: Material,
+        }[],
+        globals?: number[],
+        material?: Material,
+    }[],
+}
+
+export function createScene(scene: SceneInfo): Scene {
+    // default texture format
+    const default_format = {
+        target: gl.TEXTURE_2D,
+        mip_level: 0,
+        internal_format: gl.RGBA,
+        width: 2,
+        height: 2,
+        border: 0,
+        format: gl.RGBA,
+        type: gl.UNSIGNED_BYTE,
+    };
+
+    const textures: {texture: WebGLTexture, unit: number}[] = [];
+    for (let i = 0; i < scene.textures.length; i++) {
+        const texture = scene.textures[i];
+
+        // create texture
+        const tex = gl.createTexture() as WebGLTexture;
+        const unit = texture.tex_unit || i;
+        gl.bindTexture(default_format.target, tex);
+        gl.texImage2D(
+            default_format.target,
+            default_format.mip_level,
+            default_format.internal_format,
+            default_format.width,
+            default_format.height,
+            default_format.border,
+            default_format.format,
+            default_format.type,
+            // default texture
+            new Uint8Array([
+                192, 0, 192, 255,
+                192, 128, 0, 255,
+                192, 128, 0, 255,
+                192, 0, 192, 255
+            ])
+        );
+
+        gl.generateMipmap(default_format.target);
+
+        // use parameters
+        for (const param in texture.params) {
+            gl.texParameteri(
+                default_format.target, 
+                param as unknown as number, 
+                texture.params[param as unknown as number]
+            );
+        }
+
+        textures.push({texture: tex, unit: unit});
+    }
+
+    return {
+        load: () => {
+            textures.forEach((texture) => {
+                gl.activeTexture(gl.TEXTURE0 + texture.unit);
+                gl.bindTexture(gl.TEXTURE_2D, texture.texture);
+            });
+            render_list = scene.meshes;
         }
     }
 }
