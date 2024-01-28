@@ -56,7 +56,7 @@ export function createVBO(
     });
 
     const target = gl.ARRAY_BUFFER;
-    const buf = gl.createBuffer() as WebGLBuffer;
+    const buf = gl.createBuffer();
     gl.bindBuffer(target, buf);
     gl.bufferData(target, buf_info.data, buf_info.usage?? gl.STATIC_DRAW);
 

@@ -14,8 +14,6 @@ export interface UniformData {
 }
 
 export interface UBO {
-    data: TypedArray;
-    uniforms: UniformInfo;
     bind: () => void;
     unbind: () => void;
     bindRange: (offset: number, size: number) => void;
@@ -45,29 +43,27 @@ export function createUBO(
     gl.bindBufferBase(target, binding, buf);
 
     const ubo: UBO = {
-        data,
-        uniforms,
         bind: () => gl.bindBuffer(target, buf),
         unbind: () => gl.bindBuffer(target, null),
         bindRange: (
             offset: number, 
             size: number
-        ) => gl.bindBufferRange(target, binding, ubo.data, offset, size),
+        ) => gl.bindBufferRange(target, binding, data, offset, size),
         setUniform: (
             uniform: UniformData
-        ) => ubo.data.set(uniform.data, ubo.uniforms[uniform.key] as unknown as number),
+        ) => data.set(uniform.data, uniforms[uniform.key] as unknown as number),
         setUniforms: (
             uniforms: UniformData[]
         ) => {
-            uniforms.forEach((uniform) => {
-                ubo.data.set(uniform.data, ubo.uniforms[uniform.key] as unknown as number);
+            uniforms.forEach((uniform: UniformData) => {
+                data.set(uniform.data, uniforms[uniform.key as unknown as number] as unknown as number);
             });
         },
         setBuffer: (
             newData: TypedArray, 
             offset: number = 0
-        ) => ubo.data.set(newData, offset),
-        update: () => gl.bufferSubData(target, 0, ubo.data),
+        ) => data.set(newData, offset),
+        update: () => gl.bufferSubData(target, 0, data),
     };
 
     return ubo;

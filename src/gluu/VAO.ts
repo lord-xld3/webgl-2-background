@@ -5,7 +5,6 @@ import { gl } from "./Util";
  * A VAO is used to store VBOs and their associated vertex attribute pointers.
  */
 export interface VAO {
-    vao: WebGLVertexArrayObject;
     bind: () => void;
     unbind: () => void;
 }
@@ -18,7 +17,6 @@ export function createVAO(): VAO {
     const vao = gl.createVertexArray() as WebGLVertexArrayObject;
 
     return {
-        vao,
         bind: () => gl.bindVertexArray(vao),
         unbind: () => gl.bindVertexArray(null),
     };

@@ -22,9 +22,8 @@ export function createEBO(data: TypedArray, usage?: number
     gl.bufferData(target, data, usage??= gl.STATIC_DRAW);
     gl.bindBuffer(target, null);
 
-    const ebo: EBO = {
+    return {
         bind: () => gl.bindBuffer(target, buf),
         unbind: () => gl.bindBuffer(target, null),
     };
-    return ebo;
 }
