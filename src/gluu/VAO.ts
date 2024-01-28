@@ -1,23 +1,27 @@
 import { gl } from "./Util";
 
 /**
- * Represents a Vertex Array Object (VAO) in WebGL.
- * A VAO is used to store VBOs and their associated vertex attribute pointers.
+ * A Vertex Array Object (VAO) encapsulates state for VBOs and EBOs.
  */
-export interface VAO {
-    bind: () => void;
-    unbind: () => void;
-}
+export class VAO {
+    private vao: WebGLVertexArrayObject;
+    
+    constructor() {
+        this.vao = gl.createVertexArray() as WebGLVertexArrayObject;
+    }
+    
+    /**
+     * Binds the VAO.
+     */
+    public bind(): void {
+        gl.bindVertexArray(this.vao);
+    }
 
-/**
- * Creates a Vertex Array Object (VAO) in WebGL.
- * @returns The created Vertex Array Object (VAO).
- */
-export function createVAO(): VAO {
-    const vao = gl.createVertexArray() as WebGLVertexArrayObject;
-
-    return {
-        bind: () => gl.bindVertexArray(vao),
-        unbind: () => gl.bindVertexArray(null),
-    };
+    /**
+     * Unbinds the VAO. 
+     * This is nearly useless, since you can just bind a different VAO.
+     */
+    public unbind(): void {
+        gl.bindVertexArray(null);
+    }
 }

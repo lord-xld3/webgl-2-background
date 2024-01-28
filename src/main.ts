@@ -45,7 +45,7 @@ const program = gluu.createProgram(vertexShader, fragmentShader);
 
 // A Vertex Array Object (VAO) can hold multiple Vertex Buffer Objects (VBOs),
 // each with their own vertex attributes and buffers.
-const vao = gluu.createVAO();
+const vao = new gluu.VAO();
 vao.bind();
 
 // A BufferInfo object contains the data, target, usage, and stride of a buffer.
@@ -106,10 +106,10 @@ const uvPointer = {
 
 // Keeping the buffer and VBO separate allows us to 're-interpret' the buffer
 // with different vertex attribute pointers.
-const vbo = gluu.createVBO(program, cubeBuffer, [positionPointer, uvPointer]);
-vbo.bind();
+const vbo = new gluu.VBO(program, cubeBuffer, [positionPointer, uvPointer]);
+vbo.enable();
 
-const ebo = gluu.createEBO(
+const ebo = new gluu.EBO(
     new Uint16Array([
         // Front face
          0,  1,  2,
@@ -139,7 +139,7 @@ const ebo = gluu.createEBO(
 
 ebo.bind();
 
-const ubo = gluu.createUBO(program, new Float32Array([0.0]), {
+const ubo = new gluu.UBO(program, new Float32Array([0.0]), {
     key: "uniformBlock",
     binding: 0,
 }, {

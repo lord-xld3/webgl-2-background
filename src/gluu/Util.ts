@@ -7,11 +7,9 @@ export function init(
 ): WebGL2RenderingContext {
     canvas = canvasElement;
     gl = canvas.getContext("webgl2") as WebGL2RenderingContext;
-    /// #if DEBUG
     if (!gl) {
         throw new Error("WebGL2 not supported");
     }
-    /// #endif
     return gl;
 }
 
@@ -22,11 +20,9 @@ function makeShader(
     const shader = gl.createShader(type) as WebGLShader;
     gl.shaderSource(shader, src);
     gl.compileShader(shader);
-    /// #if DEBUG
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
         throw new Error(gl.getShaderInfoLog(shader) as string);
     }
-    /// #endif
     return shader;
 }
 
@@ -44,11 +40,9 @@ export function createProgram(
     gl.attachShader(program, makeShader(vs, gl.VERTEX_SHADER));
     gl.attachShader(program, makeShader(fs, gl.FRAGMENT_SHADER));
     gl.linkProgram(program);
-    /// #if DEBUG
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
         throw new Error(gl.getProgramInfoLog(program) as string);
     }
-    /// #endif
     return program;
 }
 
