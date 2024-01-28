@@ -46,7 +46,7 @@ export type Geometry = {
  */
 export type Mesh = {
     program: WebGLProgram, // shader program
-    geometry: Geometry[],  // a list of geometries to render
+    geometries: Geometry[],  // a list of geometries to render
     globals?: number[],    // global state options
     material?: Material,   // material uniform data
 }
@@ -58,11 +58,9 @@ export function drawScene(): void {
     render_list.forEach((mesh) => {
         
         // global state options
-        if (mesh.globals) {
-            mesh.globals.forEach((global) => {
-                gl.enable(global);
-            });
-        }
+        mesh.globals?.forEach((global) => {
+            gl.enable(global);
+        });
 
         gl.useProgram(mesh.program);
         
@@ -73,7 +71,7 @@ export function drawScene(): void {
         }
 
         // load and draw each geometry
-        mesh.geometry.forEach((geometry) => {
+        mesh.geometries.forEach((geometry) => {
             geometry.vao.bind();
 
             // geometry-specific uniforms
@@ -90,10 +88,10 @@ export type Scene = {
     load: () => void,
 }
 
-export type SceneInfo = {
+export function createScene(
     meshes: {
         program: WebGLProgram,
-        geometry: {
+        geometries: {
             vao: VAO,
             draw: () => void,
             material?: Material,
@@ -111,9 +109,7 @@ export type SceneInfo = {
             [key: number]: number,
         }
     }[],
-}
-
-export function createScene(scene: SceneInfo): Scene {
+): Scene {
     // default texture format
     const default_format = {
         target: gl.TEXTURE_2D,
@@ -123,8 +119,8 @@ export function createScene(scene: SceneInfo): Scene {
         type: gl.UNSIGNED_BYTE,
     };
 
-    const textures: {texture: WebGLTexture, unit: number}[] | undefined
-    = scene.textures?.map((texture, i) => {
+    const gl_textures: {tex: WebGLTexture, unit: number}[] | undefined
+    = textures?.map((texture, i) => {
         
         // create default texture
         const tex = gl.createTexture() as WebGLTexture;
@@ -148,18 +144,11 @@ export function createScene(scene: SceneInfo): Scene {
             ])
         );
 
+        // default mipmap
         gl.generateMipmap(default_format.target);
-
-        // use parameters
-        for (const param in texture.params) {
-            gl.texParameteri(
-                default_format.target, 
-                param as unknown as number, 
-                texture.params[param as unknown as number]
-            );
-        }
-
-        // async load texture and re-bind/update it
+        gl.texParameteri(default_format.target, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+        
+        // async load actual texture and re-bind/update it
         const img = new Image();
         img.onload = () => {
             const format = Object.assign(default_format, texture.format);
@@ -173,6 +162,14 @@ export function createScene(scene: SceneInfo): Scene {
                 img
             );
             gl.generateMipmap(format.target);
+            // use parameters
+            for (const param in texture.params) {
+                gl.texParameteri(
+                    default_format.target, 
+                    param as unknown as number, 
+                    texture.params[param as unknown as number]
+                );
+            }
         };
         img.onerror = () => {
             console.warn(`Failed to load texture from: ${texture.src}`);
@@ -180,18 +177,18 @@ export function createScene(scene: SceneInfo): Scene {
         img.src = texture.src;
 
         return {
-            texture: tex,
+            tex: tex,
             unit: unit,
         }
     });
 
     return {
         load: () => {
-            textures?.forEach((texture) => {
+            gl_textures?.forEach((texture) => {
                 gl.activeTexture(gl.TEXTURE0 + texture.unit);
-                gl.bindTexture(gl.TEXTURE_2D, texture.texture);
+                gl.bindTexture(gl.TEXTURE_2D, texture.tex);
             });
-            render_list = scene.meshes;
+            render_list = meshes;
         }
     }
 }
