@@ -43,6 +43,14 @@ void main() {
 // Create a shader program from the vertex and fragment shaders
 const program = gluu.createProgram(vertexShader, fragmentShader);
 
+// Uniform blocks may have a minimum size of 4, or 16 bytes depending on device?
+// This is a big problem, need to pad buffer or avoid blocks if < 16 bytes.
+// Currently fails to render on my Linux machine, but works on my Windows machine.
+// bug: https://bugs.chromium.org/p/chromium/issues/detail?id=988988
+
+// TODO: Workaround for UNIFORM_BLOCK_DATA_SIZE inconsistencies
+console.log(gl.getActiveUniformBlockParameter(program, 0, gl.UNIFORM_BLOCK_DATA_SIZE));
+
 // A Vertex Array Object (VAO) can hold multiple Vertex Buffer Objects (VBOs),
 // each with their own vertex attributes and buffers.
 const vao = new gluu.VAO();
