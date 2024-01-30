@@ -21,7 +21,7 @@ precision highp float;
 in vec2 v_uv;
 
 uniform uniformBlock {
-    float u_tick;
+    bool u_tick;
 };
 
 uniform sampler2D u_texture;
@@ -29,27 +29,11 @@ uniform sampler2D u_texture;
 out vec4 outColor;
 
 void main() {
-    // 'Scroll' texcoords
-	vec2 scroll1 = v_uv + vec2(u_tick, u_tick * 4.0);
-	vec2 scroll2 = v_uv + vec2(-u_tick + 0.5, u_tick * 4.0 + 0.5);
-
-    // Textures
-	vec4 tex1 = texture(u_texture, scroll1);
-	vec4 tex2 = texture(u_texture, scroll2);
-
-	outColor = vec4(tex1 * tex2);
+    outColor = vec4(1.0, 0.0, 0.0, 1.0);
 }`;
 
 // Create a shader program from the vertex and fragment shaders
 const program = gluu.createProgram(vertexShader, fragmentShader);
-
-// Uniform blocks may have a minimum size of 4, or 16 bytes depending on device?
-// This is a big problem, need to pad buffer or avoid blocks if < 16 bytes.
-// Currently fails to render on my Linux machine, but works on my Windows machine.
-// bug: https://bugs.chromium.org/p/chromium/issues/detail?id=988988
-
-// TODO: Workaround for UNIFORM_BLOCK_DATA_SIZE inconsistencies
-console.log(gl.getActiveUniformBlockParameter(program, 0, gl.UNIFORM_BLOCK_DATA_SIZE));
 
 // A Vertex Array Object (VAO) can hold multiple Vertex Buffer Objects (VBOs),
 // each with their own vertex attributes and buffers.
@@ -58,45 +42,43 @@ vao.bind();
 
 // A BufferInfo object contains the data, target, usage, and stride of a buffer.
 // stride is the number of bytes between two of the same attribute.
-const cubeBuffer = {
-    data: new Float32Array([
-        // Front face
-        -0.5,  0.5,  0.5,  0.0, 1.0, // Top-left (0)
-         0.5,  0.5,  0.5,  1.0, 1.0, // Top-right (1)
-         0.5, -0.5,  0.5,  1.0, 0.0, // Bottom-right (2)
-        -0.5, -0.5,  0.5,  0.0, 0.0, // Bottom-left (3)
-        
-        // Back face
-         0.5,  0.5, -0.5,  0.0, 1.0, // Top-right (4)
-        -0.5,  0.5, -0.5,  1.0, 1.0, // Top-left (5)
-        -0.5, -0.5, -0.5,  1.0, 0.0, // Bottom-left (6)
-         0.5, -0.5, -0.5,  0.0, 0.0, // Bottom-right (7)
-        
-        // Top face
-        -0.5,  0.5, -0.5,  0.0, 1.0, // Top-left (8)
-         0.5,  0.5, -0.5,  1.0, 1.0, // Top-right (9)
-         0.5,  0.5,  0.5,  1.0, 0.0, // Bottom-right (10)
-        -0.5,  0.5,  0.5,  0.0, 0.0, // Bottom-left (11)
-        
-        // Bottom face
-        -0.5, -0.5,  0.5,  0.0, 1.0, // Top-left (12)
-         0.5, -0.5,  0.5,  1.0, 1.0, // Top-right (13)
-         0.5, -0.5, -0.5,  1.0, 0.0, // Bottom-right (14)
-        -0.5, -0.5, -0.5,  0.0, 0.0, // Bottom-left (15)
-        
-        // Right face
-         0.5,  0.5,  0.5,  0.0, 1.0, // Top-left (16)
-         0.5,  0.5, -0.5,  1.0, 1.0, // Top-right (17)
-         0.5, -0.5, -0.5,  1.0, 0.0, // Bottom-right (18)
-         0.5, -0.5,  0.5,  0.0, 0.0, // Bottom-left (19)
-        
-        // Left face
-        -0.5,  0.5, -0.5,  0.0, 1.0, // Top-left (20)
-        -0.5,  0.5,  0.5,  1.0, 1.0, // Top-right (21)
-        -0.5, -0.5,  0.5,  1.0, 0.0, // Bottom-right (22)
-        -0.5, -0.5, -0.5,  0.0, 0.0  // Bottom-left (23)
-    ])
-};
+const cubeBuffer = new Float32Array([
+    // Front face
+    -0.5,  0.5,  0.5,  0.0, 1.0, // Top-left (0)
+        0.5,  0.5,  0.5,  1.0, 1.0, // Top-right (1)
+        0.5, -0.5,  0.5,  1.0, 0.0, // Bottom-right (2)
+    -0.5, -0.5,  0.5,  0.0, 0.0, // Bottom-left (3)
+    
+    // Back face
+        0.5,  0.5, -0.5,  0.0, 1.0, // Top-right (4)
+    -0.5,  0.5, -0.5,  1.0, 1.0, // Top-left (5)
+    -0.5, -0.5, -0.5,  1.0, 0.0, // Bottom-left (6)
+        0.5, -0.5, -0.5,  0.0, 0.0, // Bottom-right (7)
+    
+    // Top face
+    -0.5,  0.5, -0.5,  0.0, 1.0, // Top-left (8)
+        0.5,  0.5, -0.5,  1.0, 1.0, // Top-right (9)
+        0.5,  0.5,  0.5,  1.0, 0.0, // Bottom-right (10)
+    -0.5,  0.5,  0.5,  0.0, 0.0, // Bottom-left (11)
+    
+    // Bottom face
+    -0.5, -0.5,  0.5,  0.0, 1.0, // Top-left (12)
+        0.5, -0.5,  0.5,  1.0, 1.0, // Top-right (13)
+        0.5, -0.5, -0.5,  1.0, 0.0, // Bottom-right (14)
+    -0.5, -0.5, -0.5,  0.0, 0.0, // Bottom-left (15)
+    
+    // Right face
+        0.5,  0.5,  0.5,  0.0, 1.0, // Top-left (16)
+        0.5,  0.5, -0.5,  1.0, 1.0, // Top-right (17)
+        0.5, -0.5, -0.5,  1.0, 0.0, // Bottom-right (18)
+        0.5, -0.5,  0.5,  0.0, 0.0, // Bottom-left (19)
+    
+    // Left face
+    -0.5,  0.5, -0.5,  0.0, 1.0, // Top-left (20)
+    -0.5,  0.5,  0.5,  1.0, 1.0, // Top-right (21)
+    -0.5, -0.5,  0.5,  1.0, 0.0, // Bottom-right (22)
+    -0.5, -0.5, -0.5,  0.0, 0.0  // Bottom-left (23)
+]);
 
 // Keeping the pointers separate lets us reuse pointers for different buffers
 const positionPointer = {
@@ -147,14 +129,16 @@ const ebo = new gluu.EBO(
 
 ebo.bind();
 
-const ubo = new gluu.UBO(program, new Float32Array([0.0]), {
-    key: "uniformBlock",
-    binding: 0,
-}, {
-    u_tick: {
-        offset: 0,
+const ubo = new gluu.UBO(
+    program, 
+    new Float32Array([0.0]),
+    "uniformBlock",
+    {
+        u_tick: { 
+            offset: 0
+        }
     },
-});
+);
 
 ubo.bind();
 

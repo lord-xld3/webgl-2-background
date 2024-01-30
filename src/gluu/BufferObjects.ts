@@ -3,7 +3,7 @@ import { TypedArray } from "./Types";
 
 /**
  * Base class for buffer objects that defines shared behavior.
- * - constructor(Create, bind, copy to buffer).
+ * - constructor(Create and bind buffer).
  * - bind() - Bind buffer.
  * - unbind() - Unbind buffer.
  */
@@ -11,16 +11,11 @@ abstract class BufferObject {
     protected buf: WebGLBuffer;
     protected target: number;
 
-    constructor(
-        target: number, 
-        data: TypedArray, 
-        usage: number
-    ) {
+    constructor(target: number) {
         this.buf = gl.createBuffer() as WebGLBuffer;
         this.target = target;
 
         this.bind();
-        gl.bufferData(this.target, data, usage);
     }
 
     public bind(): void {
@@ -40,21 +35,19 @@ export class VBO extends BufferObject {
 
     constructor(
         prog: WebGLProgram,
-        buf_info: {
-            data: TypedArray;
-            usage?: number;
-        },
-        ptrs_info: {
+        data: TypedArray,
+        ptr_infos: {
             key: string;
             size: number;
             type?: number;
             normalized?: boolean;
             stride?: number;
             offset?: number;
-        }[]
+        }[],
+        usage: number = gl.STATIC_DRAW,
     ) {
-        super(gl.ARRAY_BUFFER, buf_info.data, buf_info.usage?? gl.STATIC_DRAW);
-        this.ptrs = ptrs_info.map((ptr) => {
+        super(gl.ARRAY_BUFFER);
+        this.ptrs = ptr_infos.map((ptr) => {
             const loc = gl.getAttribLocation(prog, ptr.key);
             if (loc === -1) {
                 throw new Error(`Attribute ${ptr.key} not found in program`);
@@ -70,6 +63,7 @@ export class VBO extends BufferObject {
                 ptr, { loc }
             );
         });
+        gl.bufferData(this.target, data, usage);
         this.unbind();
     }
 
@@ -101,7 +95,8 @@ export class EBO extends BufferObject {
         data: TypedArray, 
         usage: number = gl.STATIC_DRAW
     ) {
-        super(gl.ELEMENT_ARRAY_BUFFER, data, usage);
+        super(gl.ELEMENT_ARRAY_BUFFER);
+        gl.bufferData(this.target, data, usage);
         this.unbind();
     }
 }
@@ -112,36 +107,68 @@ export class EBO extends BufferObject {
  * A Uniform Buffer Object (UBO) holds uniform data.
  */
 export class UBO extends BufferObject {
-    private binding;
     private data;
     private uniforms;
 
     constructor(
         prog: WebGLProgram,
         data: TypedArray,
-        block_info: {
-            key: string;
-            binding?: number;
-            usage?: number;
-        },
+        block_name: string,
         uniforms: {
             [key: string]: {
                 offset: number;
             };
         },
+        binding: number = 0,
+        usage: number = gl.DYNAMIC_DRAW,
     ) {
-        const blockIndex = gl.getUniformBlockIndex(prog, block_info.key);
+        const blockIndex = gl.getUniformBlockIndex(prog, block_name);
         if (blockIndex === -1) {
-            throw new Error(`Uniform block ${block_info.key} not found in program`);
+            throw new Error(`Uniform block ${block_name} not found in program`);
         }
-        super(gl.UNIFORM_BUFFER, data, block_info.usage?? gl.DYNAMIC_DRAW);
+        super(gl.UNIFORM_BUFFER);
         
-        this.binding = block_info.binding?? 0;
+        gl.uniformBlockBinding(prog, blockIndex, binding);
+        gl.bindBufferBase(this.target, binding, this.buf);
+
+        /* Workaround for alignment issues on some devices
+
+        In WebGL, scalars should always be 4 bytes.
+            float,
+            int,
+            uint,
+            bool
+        
+        *double* is not supported in WebGL.
+
+        However on some devices a uniform block is always aligned to 16 bytes.
+            uniform myBlock {
+                float a;
+            }
+
+            = 16 bytes???
+        
+        This workaround adds padding to the data to ensure it is aligned to 16 bytes.
+        Meaning the user can write custom shaders and copy data, while alignment is handled transparently.
+        */
+        let align = 
+            gl.getActiveUniformBlockParameter(prog, blockIndex, gl.UNIFORM_BLOCK_DATA_SIZE)
+            - data.byteLength
+
+        if (align > 0) {
+            console.log(`Padding ${align} bytes for uniform block \"${block_name}\"`)
+            data = new (data.constructor as any)(
+                data.length + Array(align / data.BYTES_PER_ELEMENT?? 1).fill(0).length
+            );
+        } else if (align < 0) {
+            console.warn(
+                `Data size exceeds uniform block \"${block_name}\" size by ${-align} bytes. Excess data is not copied to buffer.`
+            )
+        }
+        gl.bufferData(this.target, data, usage);
+
         this.data = data;
         this.uniforms = uniforms;
-        
-        gl.uniformBlockBinding(prog, blockIndex, this.binding);
-        gl.bindBufferBase(this.target, this.binding, this.buf);
         this.unbind();
     }
 
