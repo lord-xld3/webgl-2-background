@@ -21,7 +21,7 @@ precision highp float;
 in vec2 v_uv;
 
 uniform uniformBlock {
-    bool u_tick;
+    float u_tick;
 };
 
 uniform sampler2D u_texture;
@@ -29,7 +29,14 @@ uniform sampler2D u_texture;
 out vec4 outColor;
 
 void main() {
-    outColor = vec4(1.0, 0.0, 0.0, 1.0);
+    // 'Scroll' texcoords
+	vec2 scroll1 = v_uv + vec2(u_tick, u_tick * 4.0);
+	vec2 scroll2 = v_uv + vec2(-u_tick + 0.5, u_tick * 4.0 + 0.5);
+
+    // Textures
+	vec4 tex1 = texture(u_texture, scroll1);
+	vec4 tex2 = texture(u_texture, scroll2);
+	outColor = vec4(tex1 * tex2);
 }`;
 
 // Create a shader program from the vertex and fragment shaders
@@ -131,7 +138,7 @@ ebo.bind();
 
 const ubo = new gluu.UBO(
     program, 
-    new Float32Array([0.0]),
+    new Float32Array(1),
     "uniformBlock",
     {
         u_tick: { 
@@ -186,7 +193,7 @@ function render() {
 
     tick = (tick + (deltaTime * speed)) % maxTick;
 
-    ubo.setUniform({ key: "u_tick", data: new Float32Array([tick]) });
+    ubo.setUniform("u_tick", [tick]);
     ubo.update();
 
     gluu.drawScene();

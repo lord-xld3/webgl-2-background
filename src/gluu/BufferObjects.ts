@@ -18,10 +18,16 @@ abstract class BufferObject {
         this.bind();
     }
 
+    /**
+     * Bind buffer.
+     */
     public bind(): void {
         gl.bindBuffer(this.target, this.buf);
     }
 
+    /**
+     * Unbind buffer.
+     */
     public unbind(): void {
         gl.bindBuffer(this.target, null);
     }
@@ -131,39 +137,22 @@ export class UBO extends BufferObject {
         gl.uniformBlockBinding(prog, blockIndex, binding);
         gl.bindBufferBase(this.target, binding, this.buf);
 
-        /* Workaround for alignment issues on some devices
-
-        In WebGL, scalars should always be 4 bytes.
-            float,
-            int,
-            uint,
-            bool
-        
-        *double* is not supported in WebGL.
-
-        However on some devices a uniform block is always aligned to 16 bytes.
-            uniform myBlock {
-                float a;
-            }
-
-            = 16 bytes???
-        
-        This workaround adds padding to the data to ensure it is aligned to 16 bytes.
-        Meaning the user can write custom shaders and copy data, while alignment is handled transparently.
-        */
+        //Workaround for alignment issues on some devices, pads buffer to 16 bytes
         let align = 
             gl.getActiveUniformBlockParameter(prog, blockIndex, gl.UNIFORM_BLOCK_DATA_SIZE)
             - data.byteLength
 
         if (align > 0) {
-            console.log(`Padding ${align} bytes for uniform block \"${block_name}\"`)
+            console.log(
+                `Padding ${align} bytes for uniform block \"${block_name}\"`
+            );
             data = new (data.constructor as any)(
-                data.length + Array(align / data.BYTES_PER_ELEMENT?? 1).fill(0).length
+                [...data, ...Array(align / data.BYTES_PER_ELEMENT)]
             );
         } else if (align < 0) {
             console.warn(
-                `Data size exceeds uniform block \"${block_name}\" size by ${-align} bytes. Excess data is not copied to buffer.`
-            )
+                `Data size exceeds uniform block \"${block_name}\" size by ${-align} bytes.`
+            );
         }
         gl.bufferData(this.target, data, usage);
 
@@ -172,22 +161,25 @@ export class UBO extends BufferObject {
         this.unbind();
     }
 
-    public bindRange(offset: number, size: number): void {
-        gl.bindBufferRange(this.target, offset, this.buf, offset, size);
-    }
-
-    public setUniform(uniform: {
-        key: string;
-        data: TypedArray;
-    }): void {
+    /**
+     * Set the data of a specific uniform.
+     * @param key - Name of uniform.
+     * @param data - Data to write to buffer.
+     */
+    public setUniform(key: string, data: ArrayLike<number>): void {
         this.bind();
-        this.data.set(uniform.data, this.uniforms[uniform.key] as unknown as number);
+        this.data.set(data, this.uniforms[key] as unknown as number);
         this.unbind();
     }
 
+    /**
+     * Set the data of multiple uniforms.
+     * @param uniforms.key - Name of uniform.
+     * @param uniforms.data - Data to write to buffer.
+     */
     public setUniforms(uniforms: {
         key: string;
-        data: TypedArray;
+        data: ArrayLike<number>;
     }[]): void {
         this.bind();
         uniforms.forEach((uniform) => {
@@ -196,12 +188,20 @@ export class UBO extends BufferObject {
         this.unbind();
     }
 
-    public setBuffer(data: TypedArray, offset: number = 0): void {
+    /**
+     * Write directly to uniform data buffer.
+     * @param data - Data to write to buffer.
+     * @param offset - Optional offset from start of buffer.
+     */
+    public setBuffer(data: ArrayLike<number>, offset: number = 0): void {
         this.bind();
         this.data.set(data, offset);
         this.unbind();
     }
 
+    /**
+     * Copy uniform data to GPU.
+     */
     public update(): void {
         this.bind();
         gl.bufferSubData(this.target, 0, this.data);
